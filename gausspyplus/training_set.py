@@ -25,6 +25,9 @@ from .utils.noise_estimation import get_max_consecutive_channels, mask_channels,
 from .utils.output import check_if_all_values_are_none
 from .utils.spectral_cube_functions import remove_additional_axes
 
+import warnings
+warnings.filterwarnings("ignore")
+
 
 class GaussPyTrainingSet(object):
     def __init__(self, config_file=''):

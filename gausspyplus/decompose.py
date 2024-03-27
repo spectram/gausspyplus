@@ -20,6 +20,8 @@ from .utils.gaussian_functions import gaussian, area_of_gaussian, combined_gauss
 from .utils.spectral_cube_functions import change_header, save_fits, correct_header, update_header
 from .utils.output import set_up_logger, say
 
+import warnings
+warnings.filterwarnings("ignore")
 
 class GaussPyDecompose(object):
     """Decompose spectra with GaussPy+.

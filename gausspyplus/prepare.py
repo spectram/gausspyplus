@@ -19,6 +19,8 @@ from .utils.noise_estimation import get_max_consecutive_channels, mask_channels,
 from .utils.output import set_up_logger, check_if_all_values_are_none, check_if_value_is_none, say
 from .utils.spectral_cube_functions import remove_additional_axes, add_noise, change_header, save_fits
 
+import warnings
+warnings.filterwarnings("ignore")
 
 class GaussPyPrepare(object):
     def __init__(self, path_to_file=None, hdu=None, filename=None,
