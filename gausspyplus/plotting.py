@@ -374,18 +374,21 @@ def plot_spectra(pathToDataPickle, *args,
         ncomps, rchi2, rchi2gauss, pvalue = None, None, None, None
 
         if decomposition or training_set:
-            combined_gauss = combined_gaussian(
-                fit_amps, fit_fwhms, fit_means, channels)
-            ax.plot(fig_channels, combined_gauss, lw=2, color='orangered')
+            if fit_amps is not None:
+                combined_gauss = combined_gaussian(
+                    fit_amps, fit_fwhms, fit_means, channels)
+                ax.plot(fig_channels, combined_gauss, lw=2, color='orangered')
 
-            ncomps = len(fit_amps)
+                ncomps = len(fit_amps)
 
-            # Plot individual components
-            if gaussians:
-                for j in range(ncomps):
-                    gauss = gaussian(
-                        fit_amps[j], fit_fwhms[j], fit_means[j], channels)
-                    ax.plot(fig_channels, gauss, ls='solid', lw=1, color='orangered')
+                # Plot individual components
+                if gaussians:
+                    for j in range(ncomps):
+                        gauss = gaussian(
+                            fit_amps[j], fit_fwhms[j], fit_means[j], channels)
+                        ax.plot(fig_channels, gauss, ls='solid', lw=1, color='orangered')
+            else:
+                combined_gauss=0.
 
         if training_set:
             rchi2 = data['best_fit_rchi2'][idx]
