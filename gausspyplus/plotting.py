@@ -22,6 +22,7 @@ from tqdm import tqdm
 
 from .utils.gaussian_functions import gaussian, combined_gaussian
 from .utils.spectral_cube_functions import get_spectral_axis, correct_header
+from astropy.io import fits
 
 
 def get_points_for_colormap(vmin, vmax, central_val=0.):
@@ -279,7 +280,8 @@ def plot_spectra(pathToDataPickle, *args,
                  training_set=False, cols=5, rowsize=7.75, rowbreak=50, dpi=50,
                  n_spectra=None, suffix='', subcube=False, pixel_range=None,
                  list_indices=None, gaussians=True, residual=True,
-                 signal_ranges=True, random_seed=111, vel_unit=u.km/u.s):
+                 signal_ranges=True, random_seed=111, vel_unit=u.km/u.s,
+                 modelcube=None):
 
     print("\nPlotting...")
 
@@ -411,6 +413,13 @@ def plot_spectra(pathToDataPickle, *args,
         add_figure_properties(ax, rms, fig_min_channel, fig_max_channel,
                               header=header, fontsize=fontsize, vel_unit=vel_unit)
 
+        # Snippet to overplot model profiles from user supplied fits file of a 3D modelcube
+        if modelcube:
+            model_data=fits.getdata(modelcube)
+            # ToDO: Fix this by adding rest frequency or wavelength key to header
+            #model_channels = get_spectral_axis(header=fits.getheader(modelcube), to_unit=None)
+            ax.plot(fig_channels, model_data[:,yi,xi],lw=1.5,ls='dotted',color='forestgreen')        
+        
         if residual and (decomposition or training_set):
             row_i = int((i - k*(rowbreak*cols)) / cols)*3 + 2
             col_i = i % cols
