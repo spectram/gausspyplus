@@ -441,9 +441,13 @@ def plot_spectra(pathToDataPickle, *args,
 
             fig.tight_layout()
 
-            if not os.path.exists(path_to_plots):
-                os.makedirs(path_to_plots)
             pathname = os.path.join(path_to_plots, filename)
+            if os.path.isfile(path_to_plots[-4:]):
+                pathname=path_to_plots
+                filename=os.path.basename(path_to_plots)
+                path_to_plots=os.path.dirname(path_to_plots)
+            elif not os.path.exists(path_to_plots):
+                os.makedirs(path_to_plots)
             fig.savefig(pathname, dpi=dpi, overwrite=True)
             plt.close()
 
