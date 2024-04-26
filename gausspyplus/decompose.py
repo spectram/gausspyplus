@@ -274,9 +274,9 @@ class GaussPyDecompose(object):
         self.save_final_results()
 
         if self.save_initial_guesses:
-            self.save_initial_guesses()
+            self.save_initial_guesses_func()
 
-    def save_initial_guesses(self):
+    def save_initial_guesses_func(self):
         say('\npickle dump GaussPy initial guesses...', logger=self.logger)
 
         filename = '{}{}_fit_ini.pickle'.format(self.filename, self.suffix)
