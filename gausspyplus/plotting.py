@@ -23,7 +23,7 @@ from tqdm import tqdm
 from .utils.gaussian_functions import gaussian, combined_gaussian
 from .utils.spectral_cube_functions import get_spectral_axis, correct_header
 from astropy.io import fits
-
+from astropy.wcs import WCS
 
 def get_points_for_colormap(vmin, vmax, central_val=0.):
     lower_interval = abs(central_val - vmin)
@@ -274,6 +274,16 @@ def scale_fontsize(rowsize):
         fontsize = 10 - int(rowsize - rowsize_scale)
     return fontsize
 
+def generate_color_list(ncomps, cmap='Spectral', start=0.1, end=0.9):
+    
+    # Ensure start and end are within [0, 1] range
+    start = max(0.0, min(1.0, start))
+    end = max(0.0, min(1.0, end))
+    
+    values = np.linspace(start, end, ncomps)    
+    cmap = plt.get_cmap(cmap)
+    colors = [cmap(value) for value in values]
+    return colors
 
 def plot_spectra(pathToDataPickle, *args,
                  path_to_plots=None, path_to_decomp_pickle=None,
@@ -315,8 +325,12 @@ def plot_spectra(pathToDataPickle, *args,
         header = correct_header(data['header'])
         fig_channels = get_spectral_axis(header=header, to_unit=vel_unit)
         fig_min_channel, fig_max_channel = fig_channels[0], fig_channels[-1]
+        wcs=WCS(header)
+        conversion_factor = wcs.wcs.cunit[2].to(vel_unit)
     else:
         header = None
+        print('WARNING: Header not found, gaussian components will not be plotted')
+        gaussians=False
 
     list_indices, n_spectra, grid_layout = get_list_indices(
         data, subcube=subcube, pixel_range=pixel_range, list_indices=list_indices, n_spectra=n_spectra, random_seed=random_seed)
@@ -332,7 +346,7 @@ def plot_spectra(pathToDataPickle, *args,
     fig.patch.set_facecolor('white')
     fig.patch.set_alpha(1.0)
     # fig.subplots_adjust(hspace=0.5)
-
+    
     pbar = tqdm(total=n_spectra)
 
     for i, idx in enumerate(list_indices):
@@ -382,13 +396,15 @@ def plot_spectra(pathToDataPickle, *args,
                 ax.plot(fig_channels, combined_gauss, lw=2, color='orangered')
 
                 ncomps = len(fit_amps)
-
+                col_gauss=generate_color_list(ncomps, cmap='Spectral')
                 # Plot individual components
                 if gaussians:
                     for j in range(ncomps):
                         gauss = gaussian(
                             fit_amps[j], fit_fwhms[j], fit_means[j], channels)
-                        ax.plot(fig_channels, gauss, ls='solid', lw=1, color='orangered')
+                        ax.plot(fig_channels, gauss, ls='solid', lw=1, color=col_gauss[j])
+                        _, _, gauss_centroid = wcs.wcs_pix2world(0, 0, fit_means[j], 0)
+                        ax.axvline(gauss_centroid*conversion_factor, lw=1, ls='-.', color=col_gauss[j] )
             else:
                 combined_gauss=0.
 

@@ -125,7 +125,7 @@ class GaussPyTrainingSet(object):
         if self.verbose:
             print(message)
 
-    def decompose_spectra(self):
+    def decompose_spectra(self, indices=[]):
         self.initialize()
         if self.verbose:
             print("decompose {} spectra ...".format(self.n_spectra))
@@ -144,11 +144,11 @@ class GaussPyTrainingSet(object):
             xValues = np.arange(self.data.shape[2])
             nSpectra = yValues.size * xValues.size
             self.locations = list(itertools.product(yValues, xValues))
-            indices = random.sample(list(range(nSpectra)), nSpectra)
         else:
             nSpectra = len(self.data)
+        
+        if indices==[]:
             indices = random.sample(list(range(nSpectra)), nSpectra)
-            # indices = np.array([4506])  # for testing
 
         if self.use_all:
             self.n_spectra = nSpectra
@@ -362,7 +362,7 @@ class GaussPyTrainingSet(object):
         # To fit the data create a new superposition with initial
         # guesses for the parameters:
         if len(gaussians) > 0:
-            gg_init = gaussians[0]
+            gindexg_init = gaussians[0]
 
             if len(gaussians) > 1:
                 for i in range(1, len(gaussians)):
