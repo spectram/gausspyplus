@@ -20,7 +20,7 @@ import matplotlib.pyplot as plt
 from astropy import units as u
 from tqdm import tqdm
 
-from .utils.gaussian_functions import gaussian, combined_gaussian
+from .utils.gaussian_functions import gaussian, combined_gaussian, area_of_gaussian
 from .utils.spectral_cube_functions import get_spectral_axis, correct_header
 from astropy.io import fits
 from astropy.wcs import WCS
@@ -202,7 +202,8 @@ def ylabel_from_header(header):
 
     bunit = ''
     if 'BUNIT' in header.keys():
-        bunit = ' [{}]'.format(header['BUNIT'])
+        bunit_latex=u.Unit(header['BUNIT'].lower()).to_string('latex')
+        bunit = ' [{}]'.format(bunit_latex)
 
     return btype + bunit
 
@@ -291,7 +292,7 @@ def plot_spectra(pathToDataPickle, *args,
                  n_spectra=None, suffix='', subcube=False, pixel_range=None,
                  list_indices=None, gaussians=True, residual=True,
                  signal_ranges=True, random_seed=111, vel_unit=u.km/u.s,
-                 modelcube=None):
+                 modelcube=None, plot_ratios=False):
 
     print("\nPlotting...")
 
@@ -404,7 +405,7 @@ def plot_spectra(pathToDataPickle, *args,
                             fit_amps[j], fit_fwhms[j], fit_means[j], channels)
                         ax.plot(fig_channels, gauss, ls='solid', lw=1, color=col_gauss[j])
                         _, _, gauss_centroid = wcs.wcs_pix2world(0, 0, fit_means[j], 0)
-                        ax.axvline(gauss_centroid*conversion_factor, lw=1, ls='-.', color=col_gauss[j] )
+                        ax.axvline(gauss_centroid*conversion_factor, lw=1, ls='-.', color=col_gauss[j] )    
             else:
                 combined_gauss=0.
 
@@ -428,6 +429,23 @@ def plot_spectra(pathToDataPickle, *args,
 
         add_figure_properties(ax, rms, fig_min_channel, fig_max_channel,
                               header=header, fontsize=fontsize, vel_unit=vel_unit)
+        
+        if plot_ratios and fit_amps is not None and len(fit_amps) > 1:
+            meansdiff = abs(fit_means[np.argmin(fit_amps)]-fit_means[np.argmax(fit_amps)])
+            ampratio = fit_amps[np.argmin(fit_amps)]/fit_amps[np.argmax(fit_amps)]
+            fwhmsratio = fit_fwhms[np.argmin(fit_amps)]/fit_fwhms[np.argmax(fit_amps)]
+            gauss_area_ratio = area_of_gaussian(fit_amps[np.argmin(fit_amps)],\
+                fit_fwhms[np.argmin(fit_amps)])/area_of_gaussian(fit_amps[np.argmax(fit_amps)],\
+                    fit_fwhms[np.argmax(fit_amps)])
+                
+            meansdiff_str= "Means diff: {:.2f}".format(np.round(meansdiff,2))
+            ampratio_str= "Amp ratio: {:.2f}".format(np.round(ampratio,2))
+            fwhmsratio_str= "FWHMS ratio: {:.2f}".format(np.round(fwhmsratio,2))
+            gauss_area_ratio_str= "Int. area ratio: {:.2f}".format(np.round(gauss_area_ratio,2))
+            
+            for jl, line in enumerate([meansdiff_str, ampratio_str, fwhmsratio_str,\
+                gauss_area_ratio_str]):
+                ax.text(0.02, 0.94 - 0.06*jl, line, fontsize=fontsize, transform=ax.transAxes)
 
         # Snippet to overplot model profiles from user supplied fits file of a 3D modelcube
         if modelcube:
