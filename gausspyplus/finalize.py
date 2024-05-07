@@ -501,7 +501,12 @@ class Finalize(object):
         Parameters
         ----------
         mode : str
-            'full_decomposition' recreates the whole FITS cube, 'integrated_intensity' creates a cube with the integrated intensity values of the Gaussian components placed at their mean positions, 'main_component' only retains the fitted component with the largest amplitude value
+            'full_decomposition' recreates the whole FITS cube, \
+                'integrated_intensity' creates a cube with the integrated \
+                    intensity values of the Gaussian components placed at their mean positions, 
+                    \'main_component' only retains the fitted component with the largest amplitude value\
+                        'secondary_components' retains all the fitted component except the one \
+                            with the largest amplitude value
         save : bool
             Set to `True` if the map should be saved.
         dtype : str
@@ -557,6 +562,12 @@ class Finalize(object):
             elif mode == 'full_decomposition':
                 array[:, yi, xi] = combined_gaussian(
                     amps, fwhms, means, self.channels)
+            elif mode == 'secondary_components':
+                non_max_idx = [k for k, val in enumerate(amps) if k != np.argmax(amps)]
+                non_max_amps, non_max_fwhms, non_max_means = \
+                    [[amps[k],fwhms[k],means[k]] for k in non_max_idx]
+                array[:, yi, xi] = combined_gaussian(
+                    non_max_amps, non_max_fwhms, non_max_means, self.channels)
 
             nans = self.nan_mask[:, yi, xi]
             array[:, yi, xi][nans] = np.NAN
@@ -573,6 +584,9 @@ class Finalize(object):
         elif mode == 'full_decomposition':
             comment = 'Recreated dataset from fit components.'
             filename = "{}_decomp.fits".format(self.filename, self.suffix)
+        elif mode == 'secondary_components':
+            comment = 'All fit components except the main component with highest amplitude per spectrum.'
+            filename = "{}_secondary.fits".format(self.filename, self.suffix)
 
         comments = ['GaussPy+ decomposition results:']
         comments.append(comment)

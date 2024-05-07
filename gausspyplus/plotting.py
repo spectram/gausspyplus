@@ -443,9 +443,20 @@ def plot_spectra(pathToDataPickle, *args,
             fwhmsratio_str= "FWHMS ratio: {:.2f}".format(np.round(fwhmsratio,2))
             gauss_area_ratio_str= "Int. area ratio: {:.2f}".format(np.round(gauss_area_ratio,2))
             
-            for jl, line in enumerate([meansdiff_str, ampratio_str, fwhmsratio_str,\
-                gauss_area_ratio_str]):
-                ax.text(0.02, 0.94 - 0.06*jl, line, fontsize=fontsize, transform=ax.transAxes)
+            ratio_constraints=[1.5, 0.05, 0.12, 2.0] # [<=, <=, <=, >=]
+            ratio_list=[meansdiff, ampratio, gauss_area_ratio, fwhmsratio]
+            for jl, line in enumerate([meansdiff_str, ampratio_str,\
+                gauss_area_ratio_str, fwhmsratio_str]):
+                ratio_color='k'
+                ratio_weight='normal'
+                
+                if ((jl < 3) and (ratio_list[jl] <= ratio_constraints[jl])) or \
+                    ((jl == 3) and (ratio_list[jl] >= ratio_constraints[jl])):
+                    ratio_color='limegreen'
+                    ratio_weight = 'bold'
+                
+                ax.text(0.02, 0.94 - 0.06*jl, line, fontsize=fontsize,\
+                    transform=ax.transAxes, color=ratio_color, weight=ratio_weight)
 
         # Snippet to overplot model profiles from user supplied fits file of a 3D modelcube
         if modelcube:
