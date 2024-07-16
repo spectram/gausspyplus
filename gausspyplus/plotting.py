@@ -431,39 +431,43 @@ def plot_spectra(pathToDataPickle, *args,
                               header=header, fontsize=fontsize, vel_unit=vel_unit)
         
         if plot_ratios and fit_amps is not None and len(fit_amps) > 1:
+            #ToDo: Make this compatible for multiple components - np.min approach will not point to a single component for all parameters   
             meansdiff = abs(fit_means[np.argmin(fit_amps)]-fit_means[np.argmax(fit_amps)])
             ampratio = fit_amps[np.argmin(fit_amps)]/fit_amps[np.argmax(fit_amps)]
             fwhmsratio = fit_fwhms[np.argmin(fit_amps)]/fit_fwhms[np.argmax(fit_amps)]
             gauss_area_ratio = area_of_gaussian(fit_amps[np.argmin(fit_amps)],\
                 fit_fwhms[np.argmin(fit_amps)])/area_of_gaussian(fit_amps[np.argmax(fit_amps)],\
                     fit_fwhms[np.argmax(fit_amps)])
+            pSNR = fit_amps[np.argmin(fit_amps)]/rms
                 
             meansdiff_str= "Means diff: {:.2f}".format(np.round(meansdiff,2))
             ampratio_str= "Amp ratio: {:.2f}".format(np.round(ampratio,2))
             fwhmsratio_str= "FWHMS ratio: {:.2f}".format(np.round(fwhmsratio,2))
             gauss_area_ratio_str= "Int. area ratio: {:.2f}".format(np.round(gauss_area_ratio,2))
+            pSNR_str= "Sec pSNR: {:.2f}".format(np.round(pSNR,2))
             
-            ratio_constraints=[1.5, 0.05, 0.12, 2.0] # [<=, <=, <=, >=]
-            ratio_list=[meansdiff, ampratio, gauss_area_ratio, fwhmsratio]
+            ratio_constraints=[1.5, 0.11, 0.12, 2.0, 6.0] # [<=, <=, <=, <=]
+            ratio_list=[meansdiff, ampratio, gauss_area_ratio, fwhmsratio, pSNR]
             for jl, line in enumerate([meansdiff_str, ampratio_str,\
-                gauss_area_ratio_str, fwhmsratio_str]):
+                gauss_area_ratio_str, fwhmsratio_str, pSNR_str]):
                 ratio_color='k'
                 ratio_weight='normal'
                 
-                if ((jl < 3) and (ratio_list[jl] <= ratio_constraints[jl])) or \
-                    ((jl == 3) and (ratio_list[jl] >= ratio_constraints[jl])):
+                if ratio_list[jl] <= ratio_constraints[jl]:
                     ratio_color='limegreen'
                     ratio_weight = 'bold'
                 
                 ax.text(0.02, 0.94 - 0.06*jl, line, fontsize=fontsize,\
                     transform=ax.transAxes, color=ratio_color, weight=ratio_weight)
 
-        # Snippet to overplot model profiles from user supplied fits file of a 3D modelcube
-        if modelcube:
-            model_data=fits.getdata(modelcube)
-            # ToDO: Fix this by adding rest frequency or wavelength key to header
-            #model_channels = get_spectral_axis(header=fits.getheader(modelcube), to_unit=None)
-            ax.plot(fig_channels, model_data[:,yi,xi],lw=1.5,ls='dotted',color='forestgreen')        
+        # Snippet to overplot model profiles from user supplied fits files 3D modelcubes
+        if modelcube is not None:
+            # for i, modcube in enumerate(modelcube):
+            model_data = fits.getdata(modelcube)
+            # ToDO: Fix the commented line below by adding rest frequency or wavelength key to header
+            # model_channels = get_spectral_axis(header=fits.getheader(modcube), to_unit=None)
+            # col_model = generate_color_list(len(modelcube), cmap='tab10')
+            ax.plot(fig_channels, model_data[:, yi, xi], lw=1.5, ls='dotted', color='forestgreen')
         
         if residual and (decomposition or training_set):
             row_i = int((i - k*(rowbreak*cols)) / cols)*3 + 2
@@ -493,7 +497,7 @@ def plot_spectra(pathToDataPickle, *args,
                 path_to_plots=os.path.dirname(path_to_plots)
             elif not os.path.exists(path_to_plots):
                 os.makedirs(path_to_plots)
-            fig.savefig(pathname, dpi=dpi, overwrite=True)
+            fig.savefig(pathname, dpi=dpi)
             plt.close()
 
             #  close progress bar before print statement to avoid duplicate
