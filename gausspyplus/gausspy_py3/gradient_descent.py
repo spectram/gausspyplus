@@ -218,7 +218,7 @@ def train(objective_function=objective_function, training_data=None,
     vel = training_data['x_values']
     FWHMs = training_data['fwhms']
     amps = training_data['amplitudes']
-    true_params = np.append(amps, np.append(FWHMs, means))
+    # true_params = np.append(amps, np.append(FWHMs, means))
 
     # Initialize book-keeping object
     gd = gradient_descent(iterations)

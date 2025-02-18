@@ -328,7 +328,7 @@ def AGD(vel, data, errors, idx=None, signal_ranges=None,
                 # Median filter on 2x effective scale to remove poor subtractions of strong components
                 intermediate_model = func(vel, *params_f1).ravel()  # Explicit final (narrow) model
                 median_window = 2. * 10**((np.log10(alpha1) + 2.187) / 3.859)
-                residuals = median_filter(data - intermediate_model, np.int(median_window))
+                residuals = median_filter(data - intermediate_model, int(median_window))
             else:
                 residuals = data
             # Finished producing residual signal # ---------------------------
