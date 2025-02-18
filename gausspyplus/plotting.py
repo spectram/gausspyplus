@@ -432,7 +432,7 @@ def plot_spectra(pathToDataPickle, *args,
             if not os.path.exists(path_to_plots):
                 os.makedirs(path_to_plots)
             pathname = os.path.join(path_to_plots, filename)
-            fig.savefig(pathname, dpi=dpi, overwrite=True)
+            fig.savefig(pathname, dpi=dpi)
             plt.close()
 
             #  close progress bar before print statement to avoid duplicate
