@@ -25,20 +25,22 @@ class GaussPyDecompose(SettingsDefault, SettingsDecomposition, BaseChecks):
         if config_file:
             get_values_from_config_file(self, config_file, config_key="decomposition")
 
-    @functools.cached_property
+    @property
     def dirpath(self):
         # TODO: homogenize attributes self.dirpath_gpy (used here) and self.gpy_dirpath (used in training_set)
         return self.dirpath_gpy if self.dirpath_gpy is not None else Path(self.path_to_pickle_file).parents[1]
 
-    @functools.cached_property
+    @property
     def decomp_dirname(self):
         (decomp_dirname := Path(self.dirpath, "gpy_decomposed")).mkdir(parents=True, exist_ok=True)
         return decomp_dirname
 
-    @functools.cached_property
+    @property
     def filename_in(self):
         return Path(self.path_to_pickle_file).stem
 
+    #  logger and pickled_data stay cached because creating them is expensive (log file setup, pickle load); an
+    #  instance is therefore tied to one input file — create a new GaussPyDecompose to decompose a different file.
     @functools.cached_property
     def logger(self):
         if self.single_prepared_spectrum:
@@ -62,9 +64,8 @@ class GaussPyDecompose(SettingsDefault, SettingsDecomposition, BaseChecks):
         with open(self.path_to_pickle_file, "rb") as pickle_file:
             return pickle.load(pickle_file, encoding="latin1")
 
-    # TODO: Problem with tests: if improve_fitting is changed from False to True cached_property prevents updating the
-    #  dictionary
-    # @functools.cached_property
+    #  Must be a regular property (not cached): settings like improve_fitting may be changed between decompose()
+    #  calls on the same instance and have to be picked up on the next run.
     @property
     def fitting(self) -> SettingsImproveFit:
         return SettingsImproveFit(

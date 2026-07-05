@@ -69,13 +69,14 @@ def decompose_one(i):
     else:
         signal_ranges, noise_spike_ranges = None, None
 
-    # TODO: what if idx keyword is missing or None?
     return GaussianDecomposer.decompose(
         self=agd_object,
         xdata=agd_data["x_values"],
         ydata=agd_data["data_list"][i],
         edata=agd_data["error"][i] * np.ones(len(agd_data["x_values"])),
-        idx=agd_data["index"][i],
+        #  Dictionaries prepared outside of GaussPyPrepare (e.g. in the plain GaussPy format) may not contain
+        #  the 'index' key; idx is then only missing from the bookkeeping of the results.
+        idx=agd_data["index"][i] if "index" in agd_data else None,
         signal_ranges=signal_ranges,
         noise_spike_ranges=noise_spike_ranges,
     )

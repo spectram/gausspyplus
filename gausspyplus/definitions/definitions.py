@@ -270,7 +270,6 @@ class SettingsDefault:
             "simple": False,
         },
     )
-    # TODO: Change default argument from mutable to immutable
     mask_out_ranges: Optional[List] = field(
         default=None,
         metadata={
