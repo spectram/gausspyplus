@@ -91,7 +91,7 @@ def refit_spectrum_2(i):
 
 
 def calculate_noise_gpy(i):
-    return GaussPyPrepare.calculate_rms_noise(self=mp_params[0], index=i)
+    return GaussPyPrepare.prepare_spectrum(self=mp_params[0], index=i)
 
 
 def decompose_spectrum_ts(i):

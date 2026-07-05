@@ -148,7 +148,7 @@ def negative_residuals(spectrum, residual, rms, neg_res_snr=3.0, get_flags=False
     if get_flags:
         flags = np.zeros(len(fwhms)).astype("bool")
 
-    amp_vals, ranges = determine_peaks(residual, peak="negative", amp_threshold=neg_res_snr * rms)
+    amp_vals, ranges = determine_peaks(residual, peak_type="negative", amp_threshold=neg_res_snr * rms)
 
     if len(amp_vals) > 0:
         amp_vals_position_mask = np.isin(residual, amp_vals)

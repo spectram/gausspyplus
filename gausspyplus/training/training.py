@@ -15,7 +15,7 @@ from gausspyplus.definitions.definitions import SettingsDefault, SettingsTrainin
 class GaussPyTraining(SettingsDefault, SettingsTraining, BaseChecks):
     def __init__(self, config_file=""):
         self.path_to_training_set = None
-        self.gpy_dirpath = None
+        self.dirpath_gpy = None
 
         if config_file:
             get_values_from_config_file(self, config_file, config_key="training")
@@ -25,7 +25,7 @@ class GaussPyTraining(SettingsDefault, SettingsTraining, BaseChecks):
         if not self.log_output:
             return False
         return set_up_logger(
-            parentDirname=(self.gpy_dirpath or Path(self.path_to_training_set).parents[1]),
+            parentDirname=(self.dirpath_gpy or Path(self.path_to_training_set).parents[1]),
             filename=Path(self.path_to_training_set).stem,
             method="g+_training",
         )

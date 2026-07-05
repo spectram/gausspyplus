@@ -249,9 +249,9 @@ class Data:
                 self.data["noise_spike_intervals"][idx] if "noise_spike_intervals" in self.data.keys() else None
             ),
         )
-        # TODO: homogenize this, so the same keys are used for training_set and decomposition
-        #  Currently training_set uses 'fwhms', 'means' and 'amplitudes' but decomposition uses
-        #  'fwhms_fit', 'means_fit', and 'amplitudes_fit'
+        #  The differing key names are part of the established pickle formats: training_set files use 'fwhms',
+        #  'means' and 'amplitudes' whereas decomposition files use 'fwhms_fit', 'means_fit', and 'amplitudes_fit'.
+        #  They are kept for compatibility with previously generated pickle files.
         if self.decomposition:
             spectrum = self._update_spectrum_with_fit_results_from_decomposition(spectrum, idx)
         elif self.training_set:
@@ -299,10 +299,10 @@ class Figure:
     def multiple_pdfs(self):
         return self.grid_layout is None and self.n_rows_total > self.max_rows_per_figure
 
-    # TODO: change property name to be distinct from instance name
-    @functools.cached_property
-    def max_rows_per_figure(self):
-        return min(self.n_rows_total, self.max_rows_per_figure)
+    #  NOTE: an earlier cached_property named max_rows_per_figure (returning min(n_rows_total,
+    #  max_rows_per_figure)) was removed here: it clashed with the dataclass field of the same name and was
+    #  always shadowed by the instance attribute, so it never took effect. The capping is done by the callers
+    #  via rows_in_figure.
 
     @functools.cached_property
     def x_label(self):

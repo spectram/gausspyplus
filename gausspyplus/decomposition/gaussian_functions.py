@@ -9,8 +9,7 @@ from gausspyplus.preparation.determine_intervals import get_slice_indices_for_in
 CONVERSION_STD_TO_FWHM = 2 * np.sqrt(2 * np.log(2))
 
 
-# TODO: rename to integrated_area_under_gaussian_curve
-def area_of_gaussian(amp: float, fwhm: float) -> float:
+def integrated_area_under_gaussian_curve(amp: float, fwhm: float) -> float:
     """Calculate the integrated area of the Gaussian function.
 
     Parameters

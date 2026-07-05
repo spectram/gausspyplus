@@ -54,7 +54,7 @@ def _add_buffer_to_intervals(
     return merge_overlapping_intervals(intervals)
 
 
-def check_if_intervals_contain_signal(
+def get_intervals_with_significant_signal(
     spectrum: np.ndarray,
     rms: float,
     ranges: List[Optional[List]],
@@ -80,8 +80,7 @@ def check_if_intervals_contain_signal(
     Updated intervals [(low, upp), ...] that contain only significant positive signal peaks.
 
     """
-    # TODO: ranges should be np.ndarray
-    # TODO: rename this function (function is also used in gp_plus, where it is used for a conditional check)
+    #  Intervals are kept as plain lists (not np.ndarray): they are written to the pickle files in this format.
     intervals = [[lower, upper] for lower, upper in ranges if np.max(spectrum[lower:upper]) > snr * rms]
     return [
         [lower, upper]
@@ -120,9 +119,9 @@ def get_signal_ranges(
     n_channels = spectrum.size
 
     #  TODO: max_amp_vals is calculated but not used -> can determine_peaks be simplified if max_amp_vals is not needed?
-    _, ranges = determine_peaks(spectrum, peak="positive", amp_threshold=snr * rms)
+    _, ranges = determine_peaks(spectrum, peak_type="positive", amp_threshold=snr * rms)
 
-    ranges = check_if_intervals_contain_signal(spectrum, rms, ranges, snr=snr, significance=significance)
+    ranges = get_intervals_with_significant_signal(spectrum, rms, ranges, snr=snr, significance=significance)
 
     if len(ranges) == 0:
         #  If no signal was found, the goodness-of-fit calculations should still exclude the ranges in
@@ -165,8 +164,8 @@ def get_noise_spike_ranges(spectrum: np.ndarray, rms: float, snr_noise_spike: fl
         spike features. These intervals are neglected from goodness-of-fit calculations.
 
     """
-    # TODO: change name of function to determine_noise_spike_intervals
-    _, ranges = determine_peaks(spectrum, peak="negative", amp_threshold=snr_noise_spike * rms)
+    #  The name is kept as get_noise_spike_ranges for symmetry with get_signal_ranges.
+    _, ranges = determine_peaks(spectrum, peak_type="negative", amp_threshold=snr_noise_spike * rms)
     return ranges.tolist()
 
 

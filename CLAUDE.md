@@ -77,17 +77,23 @@ Plan of record for working through them — **tiers 1–2 before publishing, the
 
 Also fixed: `.gitignore` contained `*_*.py` / `*_*.ipynb`, silently ignoring any new Python file with an underscore in its name (e.g. new test modules).
 
-**Tier 2 — safe mechanical cleanups (do as one commit each):**
-- Delete dead code: `processing/spectral_cube_functions.py:483, 1145, 1799` (three unused functions), `parallel_processing/parallel_processing.py:177` (unused alternative multiprocessing path).
-- Deduplicate: `decomposition/gaussian_functions.py:101` (identical function in `agd_decomposer`).
-- Small robustness: `spatial_fitting/flags.py:115` (use `np.isclose`), `definitions/model.py:54` (`np.split`).
+**Tier 2 — safe mechanical cleanups: RESOLVED 2026-07.** Dead code deleted (three unused
+`spectral_cube_functions` helpers, commented-out mp path); the dedup TODO was stale (already deduplicated);
+`np.isclose` now used for the broad-flag FWHM comparison (eliminates re-refitting of float-identical fits —
+refit_iteration goldens updated); `split_params` deliberately kept over `np.split` (preserves list pickle format).
 
-**Tier 3 — homogenization chores (batch together; touch many call sites):**
-- `dirpath_gpy` vs `gpy_dirpath` naming (`decomposition/decompose.py:30`, `preparation/prepare.py:89`).
-- rms as list-of-list → scalar (`preparation/prepare.py:201`, `training/training_set.py:137`).
-- Return ranges as `np.ndarray` (`preparation/determine_intervals.py:83`, `preparation/noise_estimation.py:67`).
-- Pickle-dict key homogenization between training set and decomposition (`plotting/plotting.py:252`).
-- Renames flagged throughout (`gaussian_functions.py:12`, `noise_estimation.py:108-109`, `determine_intervals.py:84, 161`, `prepare.py:297`, `plotting.py:302`).
+**Tier 3 — homogenization chores: RESOLVED 2026-07.** Outcomes:
+- Renamed `GaussPyTraining.gpy_dirpath` → `dirpath_gpy` (every other stage already used `dirpath_gpy`; the old
+  name silently ignored the `dirpath_gpy` value that tutorial step 2 sets).
+- Renames applied: `check_if_intervals_contain_signal` → `get_intervals_with_significant_signal`,
+  `area_of_gaussian` → `integrated_area_under_gaussian_curve`, `GaussPyPrepare.calculate_rms_noise` →
+  `prepare_spectrum`, `determine_peaks(peak=...)` → `peak_type=`.
+- Removed the dead `Figure.max_rows_per_figure` cached_property (name-clashed with the dataclass field and was
+  always shadowed; also fixed `Figure()` construction without that parameter).
+- **Deliberately NOT changed (documented in place): the pickle formats.** rms stays a one-element list per
+  spectrum, intervals stay plain lists, and training-set files keep 'fwhms'/'means'/'amplitudes' vs the
+  decomposition files' '*_fit' keys — changing any of these would break compatibility with previously generated
+  pickle files.
 
 **Tier 4 — deferred science/algorithm questions (document, don't block release):**
 - `decomposition/agd_decomposer.py:66` — derivative normalization (`np.diff(gauss2, 2) / dv**2`?).

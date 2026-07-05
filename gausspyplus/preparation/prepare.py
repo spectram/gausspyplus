@@ -86,7 +86,6 @@ class GaussPyPrepare(SettingsDefault, SettingsPreparation, BaseChecks):
 
     @functools.cached_property
     def dirpath(self):
-        # TODO: homogenize attributes self.dirpath_gpy (used here) and self.gpy_dirpath (used in training_set)
         self.set_attribute_if_none("dirpath_gpy", Path(self.path_to_file).parent)
         return self.dirpath_gpy
 
@@ -160,7 +159,7 @@ class GaussPyPrepare(SettingsDefault, SettingsPreparation, BaseChecks):
         self.testing = True
         self.log_output = False
         self.check_settings()
-        spectrum = self.calculate_rms_noise(index=0)
+        spectrum = self.prepare_spectrum(index=0)
         return {
             "header": self.header,
             "nan_mask": np.isnan(self.data),
@@ -198,7 +197,8 @@ class GaussPyPrepare(SettingsDefault, SettingsPreparation, BaseChecks):
             "data_list": [spectrum.intensity_values for spectrum in results],
             "location": [spectrum.position_yx for spectrum in results],
             "index": [spectrum.index for spectrum in results],
-            # TODO: Change rms from list of list to single value
+            #  The rms is kept as a one-element list per spectrum: this is the established pickle format that
+            #  all downstream stages (and previously generated pickle files) rely on.
             "error": [[spectrum.rms_noise] for spectrum in results],
             "signal_ranges": [spectrum.signal_intervals for spectrum in results],
             "noise_spike_ranges": [spectrum.noise_spike_intervals for spectrum in results],
@@ -294,8 +294,7 @@ class GaussPyPrepare(SettingsDefault, SettingsPreparation, BaseChecks):
             remove_intervals=noise_spike_ranges,
         )
 
-    # TODO: Rename this method to `prepare_spectrum`?
-    def calculate_rms_noise(self, index: int) -> PreparedSpectrum:
+    def prepare_spectrum(self, index: int) -> PreparedSpectrum:
         spectrum = self._get_spectrum(index)
         rms = self._get_rms_noise(index, spectrum)
 

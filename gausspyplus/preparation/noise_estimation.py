@@ -64,15 +64,18 @@ def intervals_where_mask_is_true(mask: np.ndarray) -> np.ndarray:
         has `True` values.
 
     """
-    # TODO: return ranges as np.ndarray instead of list (.tolist() currently is still necessary for pytest to work)
+    #  The intervals are returned as plain lists (not np.ndarray): they are written to the pickle files in
+    #  this format.
     return (
         np.flatnonzero(np.diff(np.concatenate((np.array([False]), mask, np.array([False]))))).reshape(-1, 2).tolist()
     )
 
 
 # @jit(nopython=True)
-def _determine_peak_intervals(spectrum: np.ndarray, peak: Literal["positive", "negative"] = "positive") -> np.ndarray:
-    return intervals_where_mask_is_true(mask=spectrum > 0 if peak == "positive" else spectrum < 0)
+def _determine_peak_intervals(
+    spectrum: np.ndarray, peak_type: Literal["positive", "negative"] = "positive"
+) -> np.ndarray:
+    return intervals_where_mask_is_true(mask=spectrum > 0 if peak_type == "positive" else spectrum < 0)
 
 
 def _get_number_of_consecutive_channels(peak_intervals: np.ndarray) -> np.ndarray:
@@ -82,7 +85,7 @@ def _get_number_of_consecutive_channels(peak_intervals: np.ndarray) -> np.ndarra
 
 def determine_peaks(
     spectrum: np.ndarray,
-    peak: Literal["positive", "negative"] = "positive",
+    peak_type: Literal["positive", "negative"] = "positive",
     amp_threshold: Optional[float] = None,
 ) -> Tuple[np.ndarray, np.ndarray]:
     """Find peaks (positive or negative) in a spectrum and return the intensity peak value and the peak interval.
@@ -93,7 +96,7 @@ def determine_peaks(
     Parameters
     ----------
     spectrum : Intensity values of the spectrum.
-    peak : The type of peak to identify
+    peak_type : The type of peak to identify
     amp_threshold : Required minimum threshold that at least one data point in a peak feature has to exceed.
 
     Returns
@@ -104,17 +107,15 @@ def determine_peaks(
         spectrum with `spectrum[idx_lower_N:idx_upper_N]`.
 
     """
-    # TODO: check if amp_threshold can ever be None??
-    # TODO: rename amp_threshold
-    # TODO: rename peak to peak_type
+    #  amp_threshold=None is a valid input (all peak intervals are returned) and equivalent to a threshold of 0.
     amp_threshold = 0 if amp_threshold is None else amp_threshold
-    peak_intervals = _determine_peak_intervals(spectrum, peak=peak)
+    peak_intervals = _determine_peak_intervals(spectrum, peak_type=peak_type)
     maximum_value_in_peak_interval = np.array([np.abs(spectrum[low:upp]).max() for low, upp in peak_intervals])
     exceeds_threshold = maximum_value_in_peak_interval > abs(amp_threshold)
     maximum_intensity_in_group = maximum_value_in_peak_interval[exceeds_threshold]
     peak_intervals = np.array([interval for interval, is_valid in zip(peak_intervals, exceeds_threshold) if is_valid])
     return (
-        maximum_intensity_in_group * (1 if peak == "positive" else -1),
+        maximum_intensity_in_group * (1 if peak_type == "positive" else -1),
         peak_intervals,
     )
 
@@ -236,8 +237,8 @@ def _determine_valid_noise_channels_and_calculate_rms_noise(
     min_fraction_average_rms: float = 0.1,
 ) -> float:
     """Identify all suitable noise channels in a spectrum and use them to calculate the root-mean-square noise value."""
-    positive_peaks = _determine_peak_intervals(spectrum, peak="positive")
-    negative_peaks = _determine_peak_intervals(spectrum, peak="negative")
+    positive_peaks = _determine_peak_intervals(spectrum, peak_type="positive")
+    negative_peaks = _determine_peak_intervals(spectrum, peak_type="negative")
     peak_intervals = np.concatenate((positive_peaks, negative_peaks))
     peak_intervals = peak_intervals[np.argsort(peak_intervals[:, 0])]
     noise_values = _identify_valid_noise_values(spectrum, peak_intervals, max_consecutive_channels, pad_channels)

@@ -8,13 +8,13 @@ from lmfit import minimize as lmfit_minimize
 from gausspyplus.definitions.definitions import SettingsImproveFit
 from gausspyplus.definitions.model import Model
 from gausspyplus.preparation.determine_intervals import (
-    check_if_intervals_contain_signal,
+    get_intervals_with_significant_signal,
     get_slice_indices_for_interval,
 )
 from gausspyplus.decomposition.fit_quality_checks import determine_significance
 from gausspyplus.decomposition.gaussian_functions import (
     multi_component_gaussian_model,
-    area_of_gaussian,
+    integrated_area_under_gaussian_curve,
     split_params,
     number_of_gaussian_components,
     vals_vec_from_lmfit,
@@ -106,7 +106,7 @@ def _remove_components_above_max_ncomps(
     ncomps_fit = len(amps_fit)
     if ncomps_fit <= ncomps_max:
         return remove_indices, quality_control
-    integrated_intensities = area_of_gaussian(amp=amps_fit, fwhm=fwhms_fit)
+    integrated_intensities = integrated_area_under_gaussian_curve(amp=amps_fit, fwhm=fwhms_fit)
     sort_indices = np.argsort(integrated_intensities)
 
     for index in np.arange(ncomps_fit)[sort_indices]:
@@ -201,7 +201,7 @@ def _check_params_fit(
         if spectrum.signal_intervals and not any(low <= offset <= upp for low, upp in spectrum.signal_intervals):
             low, upp = get_slice_indices_for_interval(interval_center=offset, interval_half_width=fwhm)
 
-            if not check_if_intervals_contain_signal(
+            if not get_intervals_with_significant_signal(
                 spectrum=spectrum.intensity_values,
                 rms=spectrum.rms_noise,
                 ranges=[(low, upp)],
@@ -383,7 +383,7 @@ def _get_initial_guesses(
     offset_guesses : Initial guesses for mean positions of Gaussian fit parameters for residual peaks.
 
     """
-    amp_vals_of_peaks, peak_intervals = determine_peaks(spectrum=residual, peak=peak, amp_threshold=snr * rms)
+    amp_vals_of_peaks, peak_intervals = determine_peaks(spectrum=residual, peak_type=peak, amp_threshold=snr * rms)
 
     if amp_vals_of_peaks.size == 0:
         return np.array([]), np.array([]), np.array([])

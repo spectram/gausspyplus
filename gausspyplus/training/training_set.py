@@ -134,7 +134,8 @@ class GaussPyTrainingSet(SettingsDefault, SettingsTraining, BaseChecks):
             "data_list": [fit.intensity_values for fit in results],
             "location": [fit.position_yx for fit in results],
             "index": [fit.index for fit in results],
-            # TODO: Change rms from list of list to single value
+            #  The rms is kept as a one-element list per spectrum: this is the established pickle format that
+            #  all downstream stages (and previously generated pickle files) rely on.
             "error": [[fit.rms_noise] for fit in results],
             "best_fit_rchi2": [fit.reduced_chi2_value for fit in results],
             "amplitudes": [fit.amplitude_values for fit in results],

@@ -16,7 +16,7 @@ from gausspyplus.decomposition.fit_quality_checks import negative_residuals, get
 from gausspyplus.decomposition.gaussian_functions import (
     single_component_gaussian_model,
     multi_component_gaussian_model,
-    area_of_gaussian,
+    integrated_area_under_gaussian_curve,
     CONVERSION_STD_TO_FWHM,
 )
 from gausspyplus.utils.output import say
@@ -235,10 +235,10 @@ class Finalize(BaseChecks):
             e_amplitudes /= self.main_beam_efficiency
             error /= self.main_beam_efficiency
 
-        integrated_intensity = area_of_gaussian(amp=amplitudes, fwhm=np.array(fit_fwhms) * self.velocity_increment)
+        integrated_intensity = integrated_area_under_gaussian_curve(amp=amplitudes, fwhm=np.array(fit_fwhms) * self.velocity_increment)
         fit_fwhms_plus_error = np.array(fit_fwhms) + np.array(fit_e_fwhms)
         e_integrated_intensity = (
-            area_of_gaussian(
+            integrated_area_under_gaussian_curve(
                 amp=amplitudes + e_amplitudes,
                 fwhm=fit_fwhms_plus_error * self.velocity_increment,
             )
@@ -590,7 +590,7 @@ class Finalize(BaseChecks):
                 array[:, yi, xi] = single_component_gaussian_model(amps[j], fwhms[j], means[j], self.channels)
             elif mode == "integrated_intensity" and ncomps > 0:
                 for j in range(ncomps):
-                    integrated_intensity = area_of_gaussian(amps[j], fwhms[j] * self.velocity_increment)
+                    integrated_intensity = integrated_area_under_gaussian_curve(amps[j], fwhms[j] * self.velocity_increment)
                     channel = int(round(means[j]))
                     if self.channels[0] <= channel <= self.channels[-1]:
                         array[channel, yi, xi] += integrated_intensity

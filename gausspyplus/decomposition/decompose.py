@@ -27,7 +27,6 @@ class GaussPyDecompose(SettingsDefault, SettingsDecomposition, BaseChecks):
 
     @property
     def dirpath(self):
-        # TODO: homogenize attributes self.dirpath_gpy (used here) and self.gpy_dirpath (used in training_set)
         return self.dirpath_gpy if self.dirpath_gpy is not None else Path(self.path_to_pickle_file).parents[1]
 
     @property
