@@ -1,7 +1,3 @@
-# TODO: Fix the root cause for the following error message (caused by GaussPy?):
-#  WARNING: VisibleDeprecationWarning: Creating an ndarray from ragged nested sequences (which is a list-or-tuple of
-#  lists-or-tuples-or ndarrays with different lengths or shapes) is deprecated. If you meant to do this, you must
-#  specify 'dtype=object' when creating the ndarray.
 import functools
 from pathlib import Path
 

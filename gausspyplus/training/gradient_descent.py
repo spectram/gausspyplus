@@ -1,6 +1,5 @@
 # Script to train parameters alpha1 and alpha2
 
-import inspect
 import multiprocessing
 import numpy as np
 
@@ -111,15 +110,27 @@ def objective_function(
     plot=False,
 ):
 
-    # Obtain dictionary of current-scope keywords/arguments
-    frame = inspect.currentframe()
-    args, _, _, values = inspect.getargvalues(frame)
-    del values["frame"]  # This key not part of function arguments
+    #  Collect the function arguments explicitly; harvesting them via inspect.currentframe() breaks on
+    #  Python >= 3.13, where frame locals are exposed as a read-only proxy (PEP 667).
+    values = {
+        "alpha1": alpha1,
+        "alpha2": alpha2,
+        "training_data": training_data,
+        "SNR_thresh": SNR_thresh,
+        "SNR2_thresh": SNR2_thresh,
+        "phase": phase,
+        "data": data,
+        "errors": errors,
+        "means": means,
+        "vel": vel,
+        "FWHMs": FWHMs,
+        "amps": amps,
+        "verbose": verbose,
+        "plot": plot,
+    }
 
     # Construct iterator of dictionaries of keywords for multi-processing
-    mp_params = iter(
-        [dict(list(values.items()) + list({"j": j}.items())) for j in range(len(training_data["data_list"]))]
-    )
+    mp_params = iter([values | {"j": j} for j in range(len(training_data["data_list"]))])
 
     # Multiprocessing code
     ncpus = multiprocessing.cpu_count()
