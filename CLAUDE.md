@@ -67,13 +67,15 @@ Multiprocessing is funneled through `parallel_processing.py` (module-level state
 
 Plan of record for working through them — **tiers 1–2 before publishing, the rest deferred**:
 
-**Tier 1 — correctness, resolve/verify before publish:**
-- `decomposition/decompose.py:65` — `cached_property` prevented `improve_fitting` toggling on a reused instance; `fitting` was already downgraded to `@property` as a workaround, but other cached properties (`dirpath`, `pickled_data`, …) still make instance reuse fragile.
-- `training/training.py:1` — ragged-nested-sequence warning from GaussPy training; under numpy 2.x this is an **error**, not a warning, so the training stage likely breaks (untested by the suite — no training test exists).
-- `parallel_processing/parallel_processing.py:72` — unhandled missing/None `idx` keyword in the decompose worker.
-- `definitions/definitions.py:273` — `mask_out_ranges` mutable-default concern (currently `default=None`, so verify then drop the comment).
-- `preparation/determine_intervals.py:132` — refactored interval buffering intentionally changed results vs. v0.2 (bugfix); validate on a real cube before publishing so the change is a release note, not a surprise.
-- `spatial_fitting/spatial_fitting.py:855, 887, 693, 1719` — open questions in refit-loop logic (if/elif correctness, `is_successful_refit` semantics, neighbor-grouping condition, duplicate weight check).
+**Tier 1 — correctness: RESOLVED 2026-07.** Outcomes (details in the commit messages):
+- Training stage was broken on Python >= 3.13 by the frame-locals hack in `objective_function` (PEP 667), **not** by the ragged-array warning (that root cause was already gone). Fixed; `tests/test_training.py` added. Caveat: training spawns a fresh multiprocessing Pool per objective evaluation — with the spawn start method (macOS default) a full 500-iteration training run is slow.
+- `decompose.py` cached properties: path-derived ones are plain properties now; `logger`/`pickled_data` stay cached, so one `GaussPyDecompose` instance == one input file (settings like `improve_fitting` may be toggled between runs).
+- `parallel_processing` decompose worker now tolerates pickles without an `"index"` key (plain-GaussPy format).
+- `mask_out_ranges` default was already immutable (`None`); stale TODO dropped.
+- Interval buffering: constant-pad bugfix validated on all 125 GRS spectra (68 get tighter signal ranges, old accelerating pad overshot `min_channels`) — **release-note this**. Restored a dropped v0.2 edge case: no-signal spectra still exclude `remove_intervals` from goodness-of-fit ranges.
+- All four spatial-fitting refit-loop questions answered: the if/elif dispatch, skip condition, and weight filter are correct (now documented in place); `is_successful_refit` was renamed `is_refit_attempted` (it feeds the "Tried to refit" statistic; success == `fit_results is not None`).
+
+Also fixed: `.gitignore` contained `*_*.py` / `*_*.ipynb`, silently ignoring any new Python file with an underscore in its name (e.g. new test modules).
 
 **Tier 2 — safe mechanical cleanups (do as one commit each):**
 - Delete dead code: `processing/spectral_cube_functions.py:483, 1145, 1799` (three unused functions), `parallel_processing/parallel_processing.py:177` (unused alternative multiprocessing path).
