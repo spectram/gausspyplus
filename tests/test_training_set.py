@@ -31,9 +31,14 @@ def test_gaussian_fitting():
     training_set.maxStddev = training_set.max_fwhm / 2.355 if training_set.max_fwhm is not None else None
     training_set.minStddev = training_set.min_fwhm / 2.355 if training_set.min_fwhm is not None else None
     fit_values = training_set.gaussian_fitting(spectrum, rms)
-    assert fit_values == [
-        [0.49323248704016304, 182.4598447452132, 16.670207796744403],
-        [0.6966674945382034, 232.65252631359184, 5.672850108091679],
-    ]
+    #  Compare with tolerance: exact fit values drift slightly with the installed numpy/scipy/lmfit versions.
+    assert np.allclose(
+        fit_values,
+        [
+            [0.49323248704016304, 182.4598447452132, 16.670207796744403],
+            [0.6966674945382034, 232.65252631359184, 5.672850108091679],
+        ],
+        rtol=1e-4,
+    )
     # assert rchi2 == 1.1918769968287917
     # assert pvalue == 0.2815043462467674
