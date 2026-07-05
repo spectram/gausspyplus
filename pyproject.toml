@@ -6,23 +6,20 @@ authors = ["Manuel Riener <manuel.riener@icloud.com>"]
 readme = "README.md"
 
 [tool.poetry.dependencies]
-python = ">=3.9,<3.11"
-astropy = "5.3.4"
-lmfit = "1.0.3"
-matplotlib = "3.5.2"
-networkx = "2.6.3"
-numpy = "1.22.0"
-scipy = "1.9.2"
-tqdm = "4.62.3"
+python = ">=3.10,<3.14"
+astropy = ">=5.3"
+lmfit = ">=1.2"
+matplotlib = ">=3.7"
+networkx = ">=2.8"
+numpy = ">=1.24"
+scipy = ">=1.10"
+tqdm = ">=4.62"
 
-[tool.poetry.dev-dependencies]
-jupyterlab = "3.2.3"
-pytest = "6.2.5"
-black = "22.6.0"
-pre-commit = "2.20.0"
-
-[tool.poetry.scripts]
-streamlit = "poetry_run:streamlit"
+[tool.poetry.group.dev.dependencies]
+jupyterlab = ">=4.0"
+pytest = ">=8.0"
+black = ">=24.0"
+pre-commit = ">=3.5"
 
 [tool.black]
 line-length = 119
