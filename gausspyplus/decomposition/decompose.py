@@ -168,9 +168,12 @@ class GaussPyDecompose(SettingsDefault, SettingsDecomposition, BaseChecks):
         self.save_final_results()
 
         if self.save_initial_guesses:
-            self.save_initial_guesses()
+            self.save_initial_guesses_to_file()
 
-    def save_initial_guesses(self):
+    #  This method must not share the name of the inherited save_initial_guesses settings attribute; the method
+    #  definition otherwise shadows the attribute default, so the setting appears always enabled and enabling it
+    #  explicitly makes the call above fail with "'bool' object is not callable".
+    def save_initial_guesses_to_file(self):
         say("\npickle dump GaussPy initial guesses...", logger=self.logger)
 
         filename = f'{self.filename_in}{"" if self.suffix is None else self.suffix}_fit_ini.pickle'
