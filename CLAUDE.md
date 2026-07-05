@@ -44,6 +44,8 @@ poetry run pytest tests/test_workflow.py -k prepare   # single test
 
 Tests read `data/grs-test_field_5x5.fits` (and `_10x10`) and write/clean outputs under `tests/test_grs/`. Golden-value assertions use `assert_stats_match`: integer stats (component counts) exact, float aggregates with rtol — fit results drift slightly between numpy/scipy/lmfit versions, and the iterative spatial refit amplifies this. If goldens need regenerating after a dependency bump, verify counts stay consistent and document old values in a comment. Formatting: `black` with line length 119 (enforced via pre-commit).
 
+**Platform drift:** even with lockfile-identical dependencies, Linux/OpenBLAS (CI) and macOS/Accelerate produce slightly different lmfit results; the spatial refit loop turns this into ±1 flips in per-spectrum `refit_iteration` sums and ~2% shifts in fit-error sums (Python version has no effect — all CI matrix jobs agree). The spatial-fitting tests therefore assert component counts / `refitting_iteration` exactly but give those two statistics wider tolerances (5e-2, ±2). CI (`.github/workflows/python-package.yml`) installs via `poetry install --with dev` from the lockfile on Python 3.10–3.13; jupyterlab lives in the optional `notebooks` group so CI skips it.
+
 ### On `master`/`mainmod`/`musecubes`
 
 No meaningful automated tests. Verification is done by running the pipeline scripts in `example/` (`step_1-training_set--grs.py` … `step_6-spatial_refitting-p2--grs.py`) or the tutorial notebooks against the GRS test field data.
