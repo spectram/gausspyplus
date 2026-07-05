@@ -168,12 +168,14 @@ def test_spatial_fitting_phase_1():
     #  Golden values regenerated 2026-07 on numpy 2.2/scipy 1.15/lmfit 1.3; the iterative refit loop amplifies
     #  solver drift, so results differ from the original numpy 1.22/scipy 1.9 stack
     #  (was [2, 268, 4122.733, 540.444, 29]).
+    #  refit_iteration dropped from 28 to 27 when the broad-flag check switched from == to np.isclose,
+    #  which stopped re-refitting spectra whose refits reproduced the same fit to float precision.
     expected_values = [
         2,
         267,
-        4155.948965933362,
-        552.6675546277805,
-        28,
+        4155.9474038457565,
+        552.6706346171532,
+        27,
     ]
     actual_values = [
         sp.refitting_iteration,
@@ -213,8 +215,8 @@ def test_spatial_fitting_phase_2():
     expected_values = [
         6,
         267,
-        4155.948965933362,
-        552.6675546277805,
+        4155.9474038457565,
+        552.6706346171532,
         0,
     ]
     actual_values = [

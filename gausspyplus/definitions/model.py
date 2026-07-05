@@ -51,7 +51,8 @@ class Model:
         if len(self._parameters) % 3 != 0:
             raise Exception("One or more fit parameters are missing")
         ncomps = number_of_gaussian_components(params=values)
-        # TODO: Replace split_params with np.split?
+        #  split_params is deliberately kept over np.split: it preserves the plain-list parameter format that is
+        #  written to the result pickles.
         self._amps, self._fwhms, self._means = split_params(params=values, ncomps=ncomps)
         self._n_components = ncomps
         self._modelled_intensity_values = multi_component_gaussian_model(

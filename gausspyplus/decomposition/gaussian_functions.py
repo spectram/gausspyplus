@@ -98,7 +98,6 @@ def errs_vec_from_lmfit(lmfit_params):
     return [0 if value.stderr is None else value.stderr for value in lmfit_params.values()]
 
 
-# TODO: Identical function in AGD_decomposer -> remove redundancy
 def paramvec_to_lmfit(
     paramvec: List,
     max_amp: Optional[float] = None,

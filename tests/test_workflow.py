@@ -157,10 +157,12 @@ def test_spatial_fitting_phase_1():
     # TODO: check whether refit_iteration tracks the number of how often a spectrum has been refit
     #  Golden values regenerated 2026-07 on numpy 2.2/scipy 1.15/lmfit 1.3; the iterative refit loop amplifies
     #  solver drift, so results differ from the original numpy 1.22/scipy 1.9 stack (was [1078.570, 135.076, 8]).
+    #  refit_iteration dropped from 9 to 7 when the broad-flag check switched from == to np.isclose,
+    #  which stopped re-refitting spectra whose refits reproduced the same fit to float precision.
     expected_values = [
-        1078.9219720703295,
-        147.27370597788288,
-        9,
+        1078.9223060770462,
+        147.27407335875066,
+        7,
     ]
     actual_values = [
         sum(map(sum, filter(is_not_none, data_spatial_fitted_phase_1["fwhms_fit"]))),
@@ -195,9 +197,9 @@ def test_spatial_fitting_phase_2():
 
     #  Golden values regenerated 2026-07 on numpy 2.2/scipy 1.15/lmfit 1.3 (was [1078.570, 135.076, 0]).
     expected_values = [
-        1078.9219720703295,
-        147.27370597788288,
-        0,  # TODO: Check if this value is correct
+        1078.9223060770462,
+        147.27407335875066,
+        0,
     ]
     actual_values = [
         sum(map(sum, filter(is_not_none, data_spatial_fitted_phase_2["fwhms_fit"]))),

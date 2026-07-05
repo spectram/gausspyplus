@@ -175,35 +175,6 @@ def func(use_ncpus=None, function="noise"):
     return results_list
 
 
-# TODO: alternative way for multiprocessing used for gausspy decomposition -> can be deleted
-# def func(use_ncpus=None):
-#     # Multiprocessing code
-#     ncpus = multiprocessing.cpu_count()
-#     if use_ncpus is None:
-#         use_ncpus = int(0.75 * ncpus)
-#     # p = multiprocessing.Pool(ncpus, init_worker)
-#     print(('using {} out of {} cpus'.format(use_ncpus, ncpus)))
-#     p = multiprocessing.Pool(use_ncpus, init_worker)
-#     kwargs = {
-#         'total': len(ilist),
-#         'unit': 'it',
-#         'unit_scale': True,
-#         'leave': True
-#     }
-#     try:
-#         # results_list = p.map(decompose_one, tqdm(ilist))
-#         # results_list = tqdm(p.map(decompose_one, ilist), total=len(ilist))
-#         results_list = tqdm(p.imap(decompose_one, ilist), **kwargs)
-#
-#     except KeyboardInterrupt:
-#         print("KeyboardInterrupt... quitting.")
-#         p.terminate()
-#         quit()
-#     p.close()
-#     del p
-#     return results_list
-
-
 def func_ts(total, use_ncpus=None):
     # Multiprocessing code
     ncpus = multiprocessing.cpu_count()
