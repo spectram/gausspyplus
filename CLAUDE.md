@@ -60,3 +60,40 @@ The package is a staged pipeline; each stage reads/writes pickled dicts (keys li
 6. **Finalize** (`finalize.py`) — assemble results into output tables/cubes.
 
 Multiprocessing is funneled through `parallel_processing.py` (module-level state, `init`/`func` pattern — beware when refactoring). All stage classes share the config mechanism: attributes settable directly or via a `.ini` config file (`config_file.py` / `definitions/`).
+
+**Settings-attribute shadowing hazard:** stage classes inherit settings as dataclass fields (`SettingsDefault`, `SettingsDecomposition`, …) from `definitions/definitions.py`. A method or property whose name equals a settings field shadows the field default via the MRO (see the `save_initial_guesses` fix, commit 471327f). When adding methods to stage classes, check the name against the settings dataclasses.
+
+## TODO triage (2026-07; 114 `# TODO:` comments, all upstream author's notes)
+
+Plan of record for working through them — **tiers 1–2 before publishing, the rest deferred**:
+
+**Tier 1 — correctness, resolve/verify before publish:**
+- `decomposition/decompose.py:65` — `cached_property` prevented `improve_fitting` toggling on a reused instance; `fitting` was already downgraded to `@property` as a workaround, but other cached properties (`dirpath`, `pickled_data`, …) still make instance reuse fragile.
+- `training/training.py:1` — ragged-nested-sequence warning from GaussPy training; under numpy 2.x this is an **error**, not a warning, so the training stage likely breaks (untested by the suite — no training test exists).
+- `parallel_processing/parallel_processing.py:72` — unhandled missing/None `idx` keyword in the decompose worker.
+- `definitions/definitions.py:273` — `mask_out_ranges` mutable-default concern (currently `default=None`, so verify then drop the comment).
+- `preparation/determine_intervals.py:132` — refactored interval buffering intentionally changed results vs. v0.2 (bugfix); validate on a real cube before publishing so the change is a release note, not a surprise.
+- `spatial_fitting/spatial_fitting.py:855, 887, 693, 1719` — open questions in refit-loop logic (if/elif correctness, `is_successful_refit` semantics, neighbor-grouping condition, duplicate weight check).
+
+**Tier 2 — safe mechanical cleanups (do as one commit each):**
+- Delete dead code: `processing/spectral_cube_functions.py:483, 1145, 1799` (three unused functions), `parallel_processing/parallel_processing.py:177` (unused alternative multiprocessing path).
+- Deduplicate: `decomposition/gaussian_functions.py:101` (identical function in `agd_decomposer`).
+- Small robustness: `spatial_fitting/flags.py:115` (use `np.isclose`), `definitions/model.py:54` (`np.split`).
+
+**Tier 3 — homogenization chores (batch together; touch many call sites):**
+- `dirpath_gpy` vs `gpy_dirpath` naming (`decomposition/decompose.py:30`, `preparation/prepare.py:89`).
+- rms as list-of-list → scalar (`preparation/prepare.py:201`, `training/training_set.py:137`).
+- Return ranges as `np.ndarray` (`preparation/determine_intervals.py:83`, `preparation/noise_estimation.py:67`).
+- Pickle-dict key homogenization between training set and decomposition (`plotting/plotting.py:252`).
+- Renames flagged throughout (`gaussian_functions.py:12`, `noise_estimation.py:108-109`, `determine_intervals.py:84, 161`, `prepare.py:297`, `plotting.py:302`).
+
+**Tier 4 — deferred science/algorithm questions (document, don't block release):**
+- `decomposition/agd_decomposer.py:66` — derivative normalization (`np.diff(gauss2, 2) / dv**2`?).
+- `decomposition/fit_quality_checks.py:174` — provenance of `separation_factor = 0.8493218` (likely the component-separation criterion from Riener+ 2019; document rather than change).
+- Bootstrapped parameter errors (`gaussian_functions.py:95`, `gp_plus.py:57`), median vs mean grouping (`spatial_fitting/grouping.py:216`), training-set rchi2 limits (`training_set.py:53, 257`), `perform_final_fit=False` in training (`gradient_descent.py:87`).
+- Recomputation caching in the spatial refit loop (`spatial_fitting.py:613, 619, 1497`) — performance only.
+
+**Tier 5 — test debt:**
+- `tests/integration_test.py:15` — stale intermediate pickles can mask failures across test ordering; add per-test cleanup/fixtures.
+- No test covers the training stage (relevant to the Tier-1 numpy 2.x ragged-array risk).
+- Untested `n_max_comps` decomposition round (`integration_test.py:135`), `refit_iteration` semantics (`integration_test.py:163-167`, `test_workflow.py:200`).
