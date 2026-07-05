@@ -66,5 +66,3 @@ distribute-*.tar.gz
 *.log
 *.fits
 *.txt
-*_*.py
-*_*.ipynb
