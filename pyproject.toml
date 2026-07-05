@@ -16,10 +16,17 @@ scipy = ">=1.10"
 tqdm = ">=4.62"
 
 [tool.poetry.group.dev.dependencies]
-jupyterlab = ">=4.0"
 pytest = ">=8.0"
 black = ">=24.0"
 pre-commit = ">=3.5"
+
+#  jupyterlab is only needed to run the tutorial notebooks; it is kept out of the dev group so that
+#  CI does not have to install it.
+[tool.poetry.group.notebooks]
+optional = true
+
+[tool.poetry.group.notebooks.dependencies]
+jupyterlab = ">=4.0"
 
 [tool.black]
 line-length = 119
