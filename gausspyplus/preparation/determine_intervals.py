@@ -124,14 +124,21 @@ def get_signal_ranges(
 
     ranges = check_if_intervals_contain_signal(spectrum, rms, ranges, snr=snr, significance=significance)
 
-    if len(ranges) == 0 or pad_channels <= 0:
+    if len(ranges) == 0:
+        #  If no signal was found, the goodness-of-fit calculations should still exclude the ranges in
+        #  remove_intervals (e.g. noise spikes), so return the full spectrum minus those intervals (as in v0.2).
+        if remove_intervals is None:
+            return ranges
+        mask = mask_channels(n_channels, [[0, n_channels]], remove_intervals=remove_intervals)
+        return intervals_where_mask_is_true(mask)
+
+    if pad_channels <= 0:
         return ranges
 
     # TODO: can there be a more efficient implementation of the following buffering of intervals?
 
-    # TODO: compared to the previous implementation this should give new results because of a bugfix; previously,
-    #  in the ranges got padded by 1 x pad_channels in the 1st iteration, 2 x pad_channels in the 2nd iteration,
-    #  3 x pad_channels in the 3rd iteration, and so on
+    #  NOTE: In v0.2 iteration i padded by i * pad_channels (an accelerating buffer); the constant padding per
+    #  iteration used here is a deliberate bugfix and gives slightly different signal ranges than v0.2.
     for i in itertools.count():
         ranges = _add_buffer_to_intervals(ranges, n_channels, pad_channels=pad_channels)
         mask_signal = mask_channels(n_channels, ranges, remove_intervals=remove_intervals)
