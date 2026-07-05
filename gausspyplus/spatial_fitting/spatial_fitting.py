@@ -560,8 +560,8 @@ class SpatialFitting(SettingsDefault, SettingsSpatialFitting, BaseChecks):
                 say(f"Error for spectrum with index {i}: {item}", logger=self.logger)
                 continue
 
-            index, fit_results, indices_neighbors, is_successful_refit = item
-            if is_successful_refit:
+            index, fit_results, indices_neighbors, is_refit_attempted = item
+            if is_refit_attempted:
                 count_selected += 1
             self.neighbor_indices[index] = indices_neighbors
             if fit_results is not None:
@@ -644,8 +644,8 @@ class SpatialFitting(SettingsDefault, SettingsSpatialFitting, BaseChecks):
 
         :param index: Index ('index_fit' keyword) of the spectrum that will be refit.
         :param i: List index of the entry in the list that is handed over to the multiprocessing routine.
-        :return: A list in the form of [index, fit_results, indices_neighbors, is_successful_refit] in case of a
-        successful refit; otherwise [index, 'None', indices_neighbors, is_successful_refit] is returned.
+        :return: A list in the form of [index, fit_results, indices_neighbors, is_refit_attempted] in case of a
+        successful refit; otherwise [index, 'None', indices_neighbors, is_refit_attempted] is returned.
         """
 
         spectrum = Spectrum(
@@ -690,8 +690,10 @@ class SpatialFitting(SettingsDefault, SettingsSpatialFitting, BaseChecks):
             if indices_neighbors_for_grouping.size == 0:
                 continue
 
-            # TODO: Check if condition with indices_neighbors_for_grouping is correct here
-            # Skip refitting if there were no changes of neighboring fit solutions in the last iteration
+            #  Skip refitting if the set of neighbors is unchanged AND none of these neighbors were refit in the
+            #  last iteration: a refit attempt would then only reproduce the outcome of the previous iteration.
+            #  (In the include_flagged_spectra pass the neighbor set differs from the stored unflagged set, so no
+            #  refit attempts with additional flagged neighbors are ever skipped.)
             if (
                 np.array_equal(indices_neighbors_for_grouping, self.neighbor_indices[index])
                 and not self.mask_refitted[indices_neighbors_for_grouping].sum()
@@ -700,33 +702,33 @@ class SpatialFitting(SettingsDefault, SettingsSpatialFitting, BaseChecks):
 
             # Try to refit the spectrum with fit solution of individual spectra from selected neighbors
             for flag in flags:
-                (fit_results, is_successful_refit,) = self._try_refit_with_individual_neighbors(
+                (fit_results, is_refit_attempted,) = self._try_refit_with_individual_neighbors(
                     index=index,
                     spectrum=spectrum,
                     indices_neighbors=indices_neighbors_for_individual_refit,
                     flag=flag,
                 )
-                if is_successful_refit:
+                if is_refit_attempted:
                     return [
                         index,
                         fit_results,
                         indices_neighbors_for_grouping,
-                        is_successful_refit,
+                        is_refit_attempted,
                     ]
 
             # Try to refit the spectrum by grouping the fit solutions of all selected neighboring spectra
             if indices_neighbors_for_grouping.size > 1:
-                fit_results, is_successful_refit = self._try_refit_with_grouping(
+                fit_results, is_refit_attempted = self._try_refit_with_grouping(
                     index=index,
                     spectrum=spectrum,
                     indices_neighbors=indices_neighbors_for_grouping,
                 )
-                if is_successful_refit:
+                if is_refit_attempted:
                     return [
                         index,
                         fit_results,
                         indices_neighbors_for_grouping,
-                        is_successful_refit,
+                        is_refit_attempted,
                     ]
 
         return [index, None, indices_neighbors_for_grouping, False]
@@ -743,15 +745,16 @@ class SpatialFitting(SettingsDefault, SettingsSpatialFitting, BaseChecks):
         :param spectrum: Spectrum to refit.
         :param indices_neighbors: Array containing the indices of all neighboring fit solutions that should be used
         for the grouping.
-        :return: tuple (fit_results, is_successful_refit)
+        :return: tuple (fit_results, is_refit_attempted)
             - fit_results: contains information about the new best fit solution in case of a successful refit,
             otherwise it is `None`.
-            - is_successful_refit: states whether the refit was successful.
+            - is_refit_attempted: states whether at least one refit was attempted; used for the 'Tried to refit'
+            statistic. Whether a refit was successful is indicated by fit_results not being `None`.
         """
 
         #  prepare fit parameter values of all unflagged neighboring fit solutions for the grouping
         amps, means, fwhms = self._get_initial_values(indices_neighbors)
-        is_successful_refit = False
+        is_refit_attempted = False
 
         #  Group fit parameter values of all unflagged neighboring fit solutions and try to refit the spectrum with the
         #  new resulting average fit parameter values. First we try to group the fit solutions only by their mean
@@ -783,13 +786,13 @@ class SpatialFitting(SettingsDefault, SettingsSpatialFitting, BaseChecks):
                     spectrum=spectrum,
                     fit_components=fit_components,
                 )
-                is_successful_refit = True
+                is_refit_attempted = True
                 if fit_results is None:
                     continue
                 if self._choose_new_fit(fit_results, index):
-                    return fit_results, is_successful_refit
+                    return fit_results, is_refit_attempted
 
-        return None, is_successful_refit
+        return None, is_refit_attempted
 
     def _skip_index_for_refitting(self, index: int, index_neighbor: int) -> bool:
         """Check whether neighboring fit solution should be skipped.
@@ -834,14 +837,15 @@ class SpatialFitting(SettingsDefault, SettingsSpatialFitting, BaseChecks):
         :param flag: Flagged criterion that should be refit: 'broad', 'blended', or 'residual'.
         :param updated_fit_results: Only used in phase 2 of the spatially coherent refitting, in case the best
         fit solution was already updated in a previous iteration.
-        :return: tuple (fit_results, is_successful_refit)
+        :return: tuple (fit_results, is_refit_attempted)
             - fit_results: Information about the new best fit solution in case of a successful refit. Otherwise
             'None' is returned.
-            - is_successful_refit: Information of whether there was a new successful refit.
+            - is_refit_attempted: Whether at least one refit was attempted; used for the 'Tried to refit'
+            statistic. Whether a refit was successful is indicated by fit_results not being `None`.
         """
 
         fit_components = None
-        is_successful_refit = False
+        is_refit_attempted = False
 
         for index_neighbor in indices_neighbors:
             #  check whether to use the neighboring fit solution or skip it
@@ -852,7 +856,9 @@ class SpatialFitting(SettingsDefault, SettingsSpatialFitting, BaseChecks):
             #  for components flagged as broad, blended, or causing a negative residual feature. Otherwise use the
             #  entire fit solution of the neighboring spectrum.
 
-            # TODO: check if this if-elif condition is correct and can be simplified
+            #  Dispatch on the type of refit: in phase 1, flag is one of 'broad'/'blended'/'residual' (replace only
+            #  the flagged feature) or the string 'None' (fall back to using the entire neighboring fit solution);
+            #  in phase 2, flag is unset and interval specifies the spectral range to replace.
             if flag in {"broad", "blended", "residual"}:
                 fit_components = self._replace_flagged_interval(
                     index=index,
@@ -884,8 +890,9 @@ class SpatialFitting(SettingsDefault, SettingsSpatialFitting, BaseChecks):
                 spectrum=spectrum,
                 fit_components=fit_components,
             )
-            # TODO: Does setting is_successful_refit to True here make sense?
-            is_successful_refit = True
+            #  A refit counts as attempted as soon as a fit was performed, regardless of whether it produced a new
+            #  best fit solution; this feeds the 'Tried to refit' statistic.
+            is_refit_attempted = True
             if fit_results is None:
                 continue
             if self._choose_new_fit(
@@ -895,9 +902,9 @@ class SpatialFitting(SettingsDefault, SettingsSpatialFitting, BaseChecks):
                 interval=interval,
                 n_centroids=n_centroids,
             ):
-                return fit_results, is_successful_refit
+                return fit_results, is_refit_attempted
 
-        return None, is_successful_refit
+        return None, is_refit_attempted
 
     def _get_refit_interval(
         self,
@@ -1692,11 +1699,11 @@ class SpatialFitting(SettingsDefault, SettingsSpatialFitting, BaseChecks):
 
         :param index: Index ('index_fit' keyword) of the spectrum that will be refit.
         :param i: List index of the entry in the list that is handed over to the multiprocessing routine
-        :return: A list in the form of [index, best_fit_results, indices_neighbors, is_successful_refit] in case of
-        a successful refit; otherwise [index, 'None', indices_neighbors, is_successful_refit] is returned.
+        :return: A list in the form of [index, best_fit_results, indices_neighbors, is_refit_attempted] in case of
+        a successful refit; otherwise [index, 'None', indices_neighbors, is_refit_attempted] is returned.
         """
 
-        is_successful_refit = False
+        is_refit_attempted = False
         fit_results, best_fit_results = None, None
         #  TODO: check if this is correct:
         indices_neighbors = []
@@ -1713,10 +1720,13 @@ class SpatialFitting(SettingsDefault, SettingsSpatialFitting, BaseChecks):
             ]
 
         if len(spatial_coherence_refit_requirements["means_interval"].keys()) == 0:
-            return [index, None, indices_neighbors, is_successful_refit]
+            return [index, None, indices_neighbors, is_refit_attempted]
 
         spatial_coherence_refit_requirements["indices_refit"] = self._select_neighbors_to_use_for_refit(
-            # TODO: Check if spatial_coherence_refit_requirements['weights'] >= self.w_min condition was already checked earlier
+            #  This weight filter is required: _get_indices_and_weights_of_valid_neighbors returns all neighbors up
+            #  to a distance of 2 pixels without any weight filtering. The threshold w_1 / sqrt(2) restricts the
+            #  refit templates to the immediate neighbors (same criterion as in _get_n_centroid), whereas the
+            #  spatial coherence checks themselves use all neighbors.
             indices=spatial_coherence_refit_requirements["indices_neighbors"][
                 spatial_coherence_refit_requirements["weights"] >= (self.w_1 / np.sqrt(2))
             ],
@@ -1743,4 +1753,4 @@ class SpatialFitting(SettingsDefault, SettingsSpatialFitting, BaseChecks):
             if fit_results is not None:
                 best_fit_results = fit_results
 
-        return [index, best_fit_results, indices_neighbors, is_successful_refit]
+        return [index, best_fit_results, indices_neighbors, is_refit_attempted]
