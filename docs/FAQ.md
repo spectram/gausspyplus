@@ -4,14 +4,14 @@ A training set composed of 250 to 500 representative spectra of the data set sho
 By default, the limiting value rchi2 parameter for the training set has a very low value (``rchi2_limit = 1.5``). This might lead to a bias, where only simple spectra that contain few non-blended features are included in the training set. This should not be too big of a problem, as the training step is mostly needed to find out how to best smooth the noise wiggles of the spectra for initial guesses for the fitting. However, if this should become a problem, we recommend to set the ``rchi2_limit`` parameter to higher values, to also include more complex spectra.
 
 #### How do I know if my alpha values are good enough for the decomposition?
-The best way to judge whether the alpha values determined from the training step make sense, is to verify their performance visually on representative spectra with the help of the notebook [Tutorial_decompose_single_spectrum.ipynb](../example/Tutorial_decompose_single_spectrum.ipynb).
+The best way to judge whether the alpha values determined from the training step make sense, is to verify their performance visually on representative spectra with the help of the notebook [Tutorial_decompose_single_spectrum.ipynb](../tutorials/Tutorial_decompose_single_spectrum.ipynb).
 
 Determining the best value for the alpha parameters is an essential key step for the original GaussPy algorithm.
 However, ``GaussPy+`` contains many additional routines that should be able to mitigate non-ideal choices for the alpha parameters.
 While the value of the alpha parameters is important, smaller deviations from the ideal value should not have too much of a negative effect on the ``GaussPy+`` decomposition (see also Appendix B.5 in [Riener et al. 2019](https://arxiv.org/abs/1906.10506)).
 
 #### What are the best parameter settings for my dataset?
-Unfortunately, there is no definitive answer to that. The ideal settings will likely vary depending on the characteristics of the data set. We recommend to check the notebook [Tutorial_decompose_single_spectrum.ipynb](../example/Tutorial_decompose_single_spectrum.ipynb), which allows to play around with ``GaussPy+`` settings and verify the changes directly on individual spectra.
+Unfortunately, there is no definitive answer to that. The ideal settings will likely vary depending on the characteristics of the data set. We recommend to check the notebook [Tutorial_decompose_single_spectrum.ipynb](../tutorials/Tutorial_decompose_single_spectrum.ipynb), which allows to play around with ``GaussPy+`` settings and verify the changes directly on individual spectra.
 For identifying best parameters for the spatially coherent refitting stages, we recommend to test and check parameter variations on a small representative subcube of the data set first.
 To verify the performance and correctness of the decomposition, users can also try to create their own synthetic spectra mimicking the expected spectral profiles in the observational data set.
 
@@ -43,7 +43,7 @@ However, there are additional non-ideal settings that can slow down these steps 
 
 #### Why does my decomposition take so long to run?
 There can be multiple reasons responsible for prolonging the decomposition step:
-- The size of the data cube might be too large, making the decomposition step prohibitively time-consuming or causing the computer to run out of memory. In such a case it helps to split the original cube into smaller individual subcubes (via the ``gausspyplus.utils.make_subcube`` and ``gausspyplus.utils.get_list_slice_params`` functions).
+- The size of the data cube might be too large, making the decomposition step prohibitively time-consuming or causing the computer to run out of memory. In such a case it helps to split the original cube into smaller individual subcubes (via the ``gausspyplus.processing.spectral_cube_functions.make_subcube`` and ``gausspyplus.processing.spectral_cube_functions.get_list_slice_params`` functions).
 - Non-ideal flags or flagging criteria have been set in the Stage 2 and 3 of the decomposition (i.e. the spatially coherent refitting stages). We recommend setting the ``flag_residual`` parameter to ``False`` in case the noise distribution is expected to deviate from Gaussian noise. Similarly, the ``flag_rchi2`` parameter can lead to many unsuccessful and time-consuming refitting attempts.
 
 #### Do I have to run both phases of the spatially coherent refitting steps?
@@ -51,7 +51,7 @@ It depends on the complexity of the spectra. If the spectral features are relati
 Likewise, Stage 3 (spatially coherent refitting phase 2) may not significantly improve the decomposition anymore, as Stage 2 (spatially coherent refitting phase 1) can already lead to very good spatial consistency.
 
 #### What is the best strategy for finetuning the parameter settings?
-To test the effects of changing essential and advanced parameter values, it is recommended to play around with the tutorial [Tutorial_decompose_single_spectrum.ipynb](../example/Tutorial_decompose_single_spectrum.ipynb).
+To test the effects of changing essential and advanced parameter values, it is recommended to play around with the tutorial [Tutorial_decompose_single_spectrum.ipynb](../tutorials/Tutorial_decompose_single_spectrum.ipynb).
 Later on, we recommend to focus on a small subcube of the full dataset (with a couple of 1e2 to 1e3 spectra max) to test the full decomposition routine and check how the results change if parameter values are varied.
 
 #### What does the red-shaded area in the plots of the fitted spectra indicate?
@@ -66,7 +66,7 @@ As a first step, it is recommended to set the ``snr`` and ``significance`` param
 This problem of overfitting can occur also for interferometric data sets, which might have strong non-Gaussian noise properties (e.g. noise amplifications at the spectral channels of signal peaks). These noise peaks might be misidentified as signal and tweaking the ``snr`` and ``significance`` parameters might not solve the problem fully. In such a case it can be beneficial to set the ``ncomps_max`` parameter, if an upper limit for expected signal peaks in the spectrum can be reliably estimated.
 
 #### I have distinctly different shapes of emission lines in my spectra. Can GaussPy+ handle this?
-Yes, ``GaussPy+`` can fit both broad and narrow emission lines. You can test the performance of ``GaussPy+`` in the notebook [Tutorial_decompose_single_spectrum.ipynb](../example/Tutorial_decompose_single_spectrum.ipynb) for an individual spectrum, which gives a visual representation of the decomposition step and shows how this separation of narrow and broad emission lines is performed.
+Yes, ``GaussPy+`` can fit both broad and narrow emission lines. You can test the performance of ``GaussPy+`` in the notebook [Tutorial_decompose_single_spectrum.ipynb](../tutorials/Tutorial_decompose_single_spectrum.ipynb) for an individual spectrum, which gives a visual representation of the decomposition step and shows how this separation of narrow and broad emission lines is performed.
 
 #### Why does the preparation step take such a long time?
 The most likely reason is that the number of cores (which can be specified with the ``n_cpus`` parameter) has been set to a value that is too high, which increases the overhead in the multiprocessing routine.
@@ -82,7 +82,7 @@ See the ``example_fits_first_component--grs.py`` script in the ``example`` direc
 The finalize module contains a function to easily produce a model PPV cube of the decomposition results (``finalize.make_cube``).
 
 #### Should I smooth the data before performing the decomposition?
-Depending on the characteristics of the data set (e.g. only weak signal peaks with low S/N ratio), smoothing the data set spatially or spectrally before the decomposition can be beneficial. ``GaussPy+`` contains helper functions that perform the spatial and spectral smoothing of the data set (``gausspyplus.utils.spatial_smoothing``, ``gausspyplus.utils.spectral_smoothing``).
+Depending on the characteristics of the data set (e.g. only weak signal peaks with low S/N ratio), smoothing the data set spatially or spectrally before the decomposition can be beneficial. ``GaussPy+`` contains helper functions that perform the spatial and spectral smoothing of the data set (``gausspyplus.processing.spectral_cube_functions.spatial_smoothing``, ``gausspyplus.processing.spectral_cube_functions.spectral_smoothing``).
 
 #### Can I run GaussPy+ on data sets of simulations?
 Yes. However, ``GaussPy+`` cannot deal with noiseless spectra, as its functionality will break down in case two neighboring spectral channels have the exact same value. For such cases of smooth spectra, it is necessary to overlay the spectra with noise sampled from a supplied rms-noise value. This can be achieved by setting the parameter ``simulation`` to ``True`` and supplying an average rms-noise value with the ``average_rms`` parameter.
@@ -100,7 +100,7 @@ In its current version, ``GaussPy+`` is not able to deal with optically thick li
 No. ``GaussPy+`` assumes that the baseline of the spectra is centered around zero, so any leftover continuum will thus negatively impact the decomposition.
 
 #### How can I quickly check if GaussPy+ performed well on my dataset?
-``GaussPy+`` includes many helper functions that produce maps and plots that can be used for quick verifications of the decomposition results. In the example decomposition (see notebook [Tutorial_example-GRS.ipynb](../example/Tutorial_example-GRS.ipynb)) FITS maps of the rms-noise, number of fit components, reduced chi-square values and plots of fit results of an individual regions are produced, all of which can be helpful to identify problems in the decomposition. It is also useful to compare zeroth moment maps of the original data set with a data set recreated from the decomposition results. ``GaussPy+`` contains helper functions (``gausspyplus.utils.moment_masking``) that allow to produce Moment masked versions of the data sets.
+``GaussPy+`` includes many helper functions that produce maps and plots that can be used for quick verifications of the decomposition results. In the example decomposition (see notebook [Tutorial_example-GRS.ipynb](../tutorials/Tutorial_example-GRS.ipynb)) FITS maps of the rms-noise, number of fit components, reduced chi-square values and plots of fit results of an individual regions are produced, all of which can be helpful to identify problems in the decomposition. It is also useful to compare zeroth moment maps of the original data set with a data set recreated from the decomposition results. ``GaussPy+`` contains helper functions (``gausspyplus.processing.moment_masking``) that allow to produce Moment masked versions of the data sets.
 
 #### Which of the flags should I set in the spatially coherent refitting routine?
 This strongly depends on the characteristics of the data set. For typical data sets of CO emission line surveys that are not dominated by strong optical depth effects, the default settings should perform well. In the following we list some examples of how flagging criteria might be changed for other data sets, but note that the performance should always be verified by the user:  

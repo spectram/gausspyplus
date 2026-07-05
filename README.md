@@ -1,9 +1,9 @@
-
 <p align="center">
 <img src="docs/images/gausspyplus_logo.png"  alt="" width = "300" />
 </p>
 
 ## About
+
 ``GaussPy+`` is a fully automated Gaussian decomposition package for emission line spectra. For a detailed description about the package and results of tests performed on synthetic spectra and a test field from the Galactic Ring Survey ([Jackson et al. 2006](https://ui.adsabs.harvard.edu/abs/2006ApJS..163..145J/abstract)) please see:
 
 [Riener et al. 2019](https://ui.adsabs.harvard.edu/abs/2019A%26A...628A..78R/abstract)
@@ -16,107 +16,35 @@ For tips on how to get started with ``GaussPy+`` see the section [Getting starte
 
 ### Version
 
-The currently recommended version of GaussPy+ is v0.2 (stable version released on 2020-05-19). See the [GaussPy+ Changelog](docs/CHANGES.md) for an overview of the major changes and improvements introduced in this version.
+This is ``GaussPy+`` v0.3, a modernized and restructured version of the package that runs on current Python (3.10–3.13) and current versions of the scientific Python stack (numpy 2.x, scipy, astropy, lmfit). It is based on the extensive refactoring work by Manuel Riener and is maintained in this fork. See the [Changelog](CHANGELOG.md) for an overview of the changes, including the new module layout and renamed functions.
 
-New updates to the code are first tested and developed in the ``dev`` branch. Users cloning the ``dev`` branch should beware that these versions are not guaranteed to be stable.
+Decomposition results are consistent with v0.2: the full pipeline was validated against the v0.2 code on the GRS test fields, yielding identical component counts and fit parameters that agree to numerical precision. The original v0.2 code is available from the [upstream repository](https://github.com/mriener/gausspyplus).
 
 ## Installation
 
-### Dependencies
+``GaussPy+`` requires Python 3.10–3.13. All Python dependencies (astropy, lmfit, matplotlib, networkx, numpy, scipy, tqdm) are installed automatically.
 
-You will need the following packages to run ``GaussPy+``. We list the version of each package which we know to be compatible with ``GaussPy+``.
-
-* [python 3.5](https://www.python.org/)
-* [astropy (v3.0.4)](http://www.astropy.org/)
-* [lmfit (v0.9.5)](https://lmfit.github.io/lmfit-py/intro.html)
-* [matplotlib (v2.2.2)](http://matplotlib.org/)
-* [networkx (v2.0)](https://networkx.github.io/)
-* [numpy (v1.14.2)](http://www.numpy.org/)
-* [scipy (v0.19.0)](http://www.scipy.org/)
-* [tqdm (v4.19.4)](https://tqdm.github.io/)
-
-If you do not already have Python 3.5, you can install the [Anaconda Scientific Python distribution](https://store.continuum.io/cshop/anaconda/), which comes pre-loaded with numpy and scipy.
-
-### Optional Dependencies
-
-If you wish to use optimization with Fortran code you will need
-
-* [GNU Scientific Library (GSL)](http://www.gnu.org/software/gsl/)
-
-### Download GaussPy+
-
-Download GaussPy+ using git `$ git clone https://github.com/mriener/gausspyplus`
-
-
-### Installing Dependencies on Linux
-
-You will need several libraries which the `GSL` and `scipy` libraries depend on. Install these required packages with:
+Clone the repository and install with pip:
 
 ```bash
-sudo apt-get install libblas-dev liblapack-dev gfortran libgsl0-dev
+git clone https://github.com/spectram/gausspyplus
+cd gausspyplus
+pip install .
 ```
 
-Install pip for easy installation of python packages:
+For development, the project uses [Poetry](https://python-poetry.org/):
 
 ```bash
-sudo apt-get install python-pip
-```
-
-Then install the required python packages:
-
-```bash
-sudo pip install astropy lmfit networkx numpy scipy tqdm
-```
-
-Install the optional dependencies for plotting and optimization:
-
-```bash
-sudo pip install matplotlib
-sudo apt-get install libgsl0-dev
-```
-
-### Installing Dependencies on OSX
-
-Installation on OSX can be done easily with homebrew. Install pip for easy installation of python packages:
-
-```bash
-sudo easy_install pip
-```
-
-Then install the required python packages:
-
-```bash
-sudo pip install numpy scipy lmfit astropy networkx tqdm
-```
-
-Install the optional dependencies for plotting and optimization:
-
-```bash
-sudo pip install matplotlib
-sudo brew install gsl
-```
-
-### Installing GaussPy+
-
-To install make sure that all dependences are already installed and properly linked to python --python has to be able to load them--. Then cd to the local directory containing ``GaussPy+`` and install via
-
-```bash
-python setup.py install
-```
-
-If you don't have root access and/or wish a local installation of
-``GaussPy+`` then use
-
-```bash
-python setup.py install --user
+poetry install        # create environment and install all (incl. dev) dependencies
+poetry run pytest     # run the test suite
 ```
 
 <a id="gettingstarted"></a>
 ## Getting started
 
-You can find an example decomposition run with ``GaussPy+`` in the `example` directory. All individual scripts can be run via the Jupyter notebook [Tutorial_example-GRS.ipynb](example/Tutorial_example-GRS.ipynb).
+You can find an example decomposition run with ``GaussPy+`` in the [tutorials](tutorials) directory: the scripts `step_1-training_set--grs.py` to `step_7-finalize--grs.py` walk through the full pipeline (training set creation, training, preparation, decomposition, spatially coherent refitting, and finalization) on the GRS test field. All individual steps can also be run via the Jupyter notebook [Tutorial_example-GRS.ipynb](tutorials/Tutorial_example-GRS.ipynb).
 
-The Jupyter notebook [Tutorial_decompose_single_spectrum.ipynb](example/Tutorial_decompose_single_spectrum.ipynb) illustrates the functionality of ``GaussPy+`` and allows users to play around with the different parameter settings to determine their effects on the decomposition.
+The Jupyter notebook [Tutorial_decompose_single_spectrum.ipynb](tutorials/Tutorial_decompose_single_spectrum.ipynb) illustrates the functionality of ``GaussPy+`` and allows users to play around with the different parameter settings to determine their effects on the decomposition.
 
 ### Some advice for decomposition runs with GaussPy+
 
@@ -124,9 +52,9 @@ We recommend to first test the ``GaussPy+`` settings on a small subsection of th
 
 We tested the default settings of ``GaussPy+`` on different spectral cubes of CO isotopologues, which yielded good decomposition results for all tested datasets. However, if you find that the fitting results are insufficient or stumble upon problems we recommend that you first try the following steps:
 
-* For large datasets, we recommend to create smaller subcubes, on which to perform the ``GaussPy+`` decomposition. Running the decomposition directly on the full dataset will likely become too memory-intensive. We recommend a maximum individual size of about 1e5 spectra per subcube, with a maximum of about 1e8 voxels. ``GaussPy+`` includes helper functions to split the datasets into individual subcubes (``gausspyplus.utils.make_subcube``, ``gausspyplus.utils.get_list_slice_params``) and combine the results again after the decomposition.
+* For large datasets, we recommend to create smaller subcubes, on which to perform the ``GaussPy+`` decomposition. Running the decomposition directly on the full dataset will likely become too memory-intensive. We recommend a maximum individual size of about 1e5 spectra per subcube, with a maximum of about 1e8 voxels. ``GaussPy+`` includes helper functions to split the datasets into individual subcubes (``gausspyplus.processing.spectral_cube_functions.make_subcube``, ``gausspyplus.processing.spectral_cube_functions.get_list_slice_params``) and combine the results again after the decomposition.
 
-* If you find that ``GaussPy+`` fits too many noise peaks, we recommend setting either the ``significance`` or ``snr`` parameters to higher values. In contrast, if you find that many low-intensity and/or narrow peaks are not fit at all, we recommend setting one or both of these parameters to lower values. See Sect. 3.2.1.2 and 3.2.1.3 in [Riener et al. 2019](https://arxiv.org/abs/1906.10506) for a description about the ``significance`` and ``snr`` parameters; also see App. C.3 for how changing one or both of these parameters can impact the decomposition results. ``GaussPy+`` also includes helper functions to smooth the spectral cube spatially (``gausspyplus.utils.spatial_smoothing``) and/or spectrally (``gausspyplus.utils.spectral_smoothing``).
+* If you find that ``GaussPy+`` fits too many noise peaks, we recommend setting either the ``significance`` or ``snr`` parameters to higher values. In contrast, if you find that many low-intensity and/or narrow peaks are not fit at all, we recommend setting one or both of these parameters to lower values. See Sect. 3.2.1.2 and 3.2.1.3 in [Riener et al. 2019](https://arxiv.org/abs/1906.10506) for a description about the ``significance`` and ``snr`` parameters; also see App. C.3 for how changing one or both of these parameters can impact the decomposition results. ``GaussPy+`` also includes helper functions to smooth the spectral cube spatially (``gausspyplus.processing.spectral_cube_functions.spatial_smoothing``) and/or spectrally (``gausspyplus.processing.spectral_cube_functions.spectral_smoothing``).
 
 * It might be necessary to modify the FITS header of the dataset, so that it is compatible with ``GaussPy+``. For example, the projection has to be supported by ``astropy.wcs`` and the ``NAXIS3`` axis of the FITS cube needs to be the spectral axis. ``GaussPy+`` includes helper functions that will try to prepare the FITS header accordingly, and also allow to swap the axes of the data cube.
 
@@ -140,7 +68,15 @@ We tested the default settings of ``GaussPy+`` on different spectral cubes of CO
 
 * By default, the first phase of the spatially coherent refitting will only consider unflagged neighboring fit solutions. In case all neighboring fit solutions get flagged or unflagged neighboring fit solutions do not yield an improvement in the fit, it can be beneficial to consider also flagged neighboring fit solutions for the refitting. If the ``use_all_neighors`` parameter (default: ``False``) is set to 'True' in the spatial refitting, flagged neighbors are used as refit solutions in case the refit was not possible with fit solutions from unflagged neighbors. See Appendix A.3 in Riener+ 2020a for more details.
 
-* A maximum number of fit components per spectrum can now be enforced with the ``max_ncomps`` parameter (default value: ``None``). This can be useful in case the spectrum contains instrumental artefacts, for example amplified noise oscillations in interferometric observations. It can also be useful in cases where an upper limit or maximum expected number of fit components can be predicted well and the fit solutions of ``GaussPy+`` show clear signs of overfitting. If ``max_ncomps`` is set and the total number of fit components exceeds this limit, ``GaussPy+`` will iteratively remove Gaussian components with the lowest integrated area until the total number of fit components is equal to ``max_ncomps``. We recommend to use this parameter with caution as it might lead to problems in the fitting.
+* A maximum number of fit components per spectrum can be enforced with the ``max_ncomps`` parameter (default value: ``None``). This can be useful in case the spectrum contains instrumental artefacts, for example amplified noise oscillations in interferometric observations. It can also be useful in cases where an upper limit or maximum expected number of fit components can be predicted well and the fit solutions of ``GaussPy+`` show clear signs of overfitting. If ``max_ncomps`` is set and the total number of fit components exceeds this limit, ``GaussPy+`` will iteratively remove Gaussian components with the lowest integrated area until the total number of fit components is equal to ``max_ncomps``. We recommend to use this parameter with caution as it might lead to problems in the fitting.
+
+## Testing
+
+The test suite runs the full pipeline (preparation, decomposition, improved fitting, and both spatial refitting phases) on two subsections of the GRS test field:
+
+```bash
+poetry run pytest tests/
+```
 
 <a id="faq"></a>
 ## Frequently asked questions
@@ -196,7 +132,6 @@ archivePrefix = {arXiv},
 Citation courtesy of [ADS](https://ui.adsabs.harvard.edu/#).
 
 Please also consider acknowledgements to the required packages in your work.
-
 
 ## Feedback
 
