@@ -289,7 +289,11 @@ class Figure:
 
     @functools.cached_property
     def n_rows_total(self):
-        return -int(-self.n_spectra / self.n_cols) if self.grid_layout is None else self.grid_layout[1]
+        # Ceiling division via floor division (-a // b), not int(-a / b): int() truncates toward
+        # zero rather than flooring, so it undercounts by one row whenever n_spectra isn't an exact
+        # multiple of n_cols (e.g. 81 spectra / 5 cols must be 17 rows, not 16), leaving the last
+        # row's subplots with no allocated GridSpec space.
+        return -(-self.n_spectra // self.n_cols) if self.grid_layout is None else self.grid_layout[1]
 
     @functools.cached_property
     def colsize(self):
