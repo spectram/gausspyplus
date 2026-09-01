@@ -87,7 +87,9 @@ def shiftedColorMap(cmap, start=0, midpoint=0.5, stop=1.0, name="shiftedcmap"):
         cdict["alpha"].append((si, a, a))
 
     newcmap = matplotlib.colors.LinearSegmentedColormap(name, cdict)
-    plt.register_cmap(cmap=newcmap)
+    # pyplot.register_cmap was removed in matplotlib >=3.9 (deprecated since 3.5); force=True since
+    # this is commonly called more than once per name (e.g. re-running a notebook cell).
+    matplotlib.colormaps.register(cmap=newcmap, name=name, force=True)
 
     return newcmap
 
