@@ -245,6 +245,219 @@ class SpatialFitting(SettingsDefault, SettingsSpatialFitting, BaseChecks):
         else:
             self._determine_spectra_for_refitting()
 
+    #
+    #  --- Phase 3: GDCluster-style consensus refitting (Liu & Du 2025, arXiv:2509.16572) ---
+    #
+
+    def _check_settings_gdcluster(self) -> None:
+        """Check user settings for phase 3 (gdcluster) refitting and raise/apply corrections."""
+        self.raise_exception_if_attribute_is_none("path_to_pickle_file")
+        self.raise_exception_if_attribute_is_none("path_to_decomp_file")
+        self.decomp_dirname = os.path.dirname(self.path_to_decomp_file)
+        self.file = os.path.basename(self.path_to_decomp_file)
+        self.filename, self.file_extension = os.path.splitext(self.file)
+        self.set_attribute_if_none("dirpath_gpy", os.path.dirname(self.decomp_dirname))
+        self.raise_exception_if_attribute_is_none(
+            "gdcluster_neighbor_radius",
+            error_message="You need to set 'gdcluster_neighbor_radius' (in pixels; e.g. twice the beam FWHM "
+            "converted to pixels) to use 'spatial_fitting_gdcluster'.",
+        )
+        if self.fin_filename is None:
+            #  Matches the phase 1/2 convention (_check_settings above): strip whichever prior
+            #  phase suffix the input decomp file carries, so phase 3 output is always named
+            #  '..._sf-p3', regardless of whether it was chained off phase 1, phase 2, or the raw
+            #  decompose output.
+            stem = self.filename.replace("_sf-p1", "").replace("_sf-p2", "")
+            self.fin_filename = f"{stem}_sf-p3{self.suffix or ''}"
+
+    def _flag_counts_for_reporting(self) -> Dict[str, int]:
+        """Snapshot the standard gpy+ flag counts (same criteria/config toggles phases 1/2 use).
+
+        Reuses ``determine_spectra_for_flagging`` unmodified; phase 3 does not use these flags to
+        decide who to refit (unlike phases 1/2, it refits every valid spectrum unconditionally),
+        only to report before/after statistics in the same style.
+        """
+        self.determine_spectra_for_flagging()
+        return {
+            "blended": int(self.mask_blended.sum()),
+            "neg_res_peak": int(self.mask_neg_res_peak.sum()),
+            "broad": int(self.mask_broad_flagged.sum()),
+            "broad_limit": int(self.mask_broad_limit.sum()),
+            "rchi2": int(self.mask_rchi2_flagged.sum()),
+            "residual": int(self.mask_residual.sum()),
+            "ncomps": int(self.mask_ncomps.sum()),
+        }
+
+    @staticmethod
+    def _format_flag_counts(counts: Dict[str, int], max_fwhm: float, deltas: Optional[Dict[str, int]] = None) -> str:
+        """Format flag counts in the same 'N spectra w/ ...' style phases 1/2 print.
+
+        :param deltas: If given, appends '(+N)'/'(-N)' after each count, showing the change
+            relative to a previous snapshot from ``_flag_counts_for_reporting``.
+        """
+
+        def fmt(key: str) -> str:
+            if deltas is None:
+                return str(counts[key])
+            delta = deltas[key]
+            return f"{counts[key]} ({'+' if delta >= 0 else ''}{delta})"
+
+        return textwrap.dedent(
+            f"""
+            - {fmt('blended')} spectra w/ blended components
+            - {fmt('neg_res_peak')} spectra w/ negative residual feature
+            - {fmt('broad')} spectra w/ broad feature
+            \t (info: {fmt('broad_limit')} spectra w/ a FWHM > {int(max_fwhm)} channels)
+            - {fmt('rchi2')} spectra w/ high rchi2 value
+            - {fmt('residual')} spectra w/ residual not passing normality test
+            - {fmt('ncomps')} spectra w/ differing number of components"""
+        )
+
+    def spatial_fitting_gdcluster(self, mask: Optional[np.ndarray] = None) -> None:
+        """Phase 3 of the spatially coherent refitting: GDCluster-style consensus refinement.
+
+        Opt-in and complementary to phases 1/2 (``spatial_fitting``): implements the
+        fit-refinement method of Liu & Du 2025 (arXiv:2509.16572), Sect. 2.2. See
+        ``gausspyplus/spatial_fitting/gdcluster.py`` for the full algorithm and every deviation
+        from the paper. Unlike phases 1/2, every valid spectrum is refit unconditionally against
+        its spatial neighbors' fitted components -- there is no flag/AICc accept-reject gate
+        (except one guardrail against worsened negative residuals; see ``gdcluster.py``).
+
+        Because there is no accept-reject gate, gdcluster naturally changes the standard gpy+
+        flag statistics phases 1/2 track (e.g. it is expected to introduce more blended
+        components, since it can add neighbor-consensus components that overlap). Rather than
+        gate on these flags, this method reports the exact before/after change for every one of
+        the standard flag categories (blended, negative residual, broad, high rchi2, non-Gaussian
+        residual, differing component count -- same config toggles and criteria as phases 1/2,
+        via ``determine_spectra_for_flagging``), plus, independent of the 'flag_rchi2' toggle,
+        how many refit spectra had their reduced chi-square and AICc increase vs. decrease.
+
+        Writes results to a new ``<...>_sf-p3<suffix>.pickle`` file (never overwrites phase 1/2
+        output) using the same decomposition dictionary keys phases 1/2 already write, so the
+        result is a normal decomposition pickle that ``Finalize`` can consume like any other.
+
+        :param mask: Optional boolean array (flattened, same length/order as ``index_fit``) to
+            restrict phase 3 to a sub-region, e.g. for testing. Combined with ``self.pixel_range``
+            if that is also set.
+        """
+        self._check_settings_gdcluster()
+        self._initialize()
+        self.phase_two = False  # 'determine_spectra_for_flagging' expects this attribute to exist
+
+        if self.log_output:
+            self.logger = set_up_logger(self.dirpath_gpy, self.filename, method="g+_spatial_refitting_p3")
+        else:
+            self.logger = False
+        say(message=make_pretty_header("Spatial refitting - Phase 3 (GDCluster)"), logger=self.logger)
+        say(
+            "\nFlag categories tracked for reporting (phase 3 refits every valid spectrum "
+            "regardless of these flags; they are not used to select who gets refit):",
+            logger=self.logger,
+        )
+        say(self._info_text(refit=False), logger=self.logger)
+
+        mask_all = np.array([0 if x is None else 1 for x in self.decomposition["N_components"]]).astype(bool)
+        if mask is not None:
+            mask_all &= np.asarray(mask, dtype=bool)
+        if self.pixel_range is not None:
+            mask_all &= ~self.nan_mask
+
+        self.indices_refit = np.array(self.decomposition["index_fit"])[mask_all]
+        self.locations_refit = np.take(np.array(self.location), self.indices_refit, axis=0)
+
+        before_counts = self._flag_counts_for_reporting()
+        say(
+            "\nFlags before phase 3 (GDCluster) refitting:"
+            + self._format_flag_counts(before_counts, self.max_fwhm),
+            logger=self.logger,
+        )
+
+        keys = [
+            "amplitudes_fit",
+            "fwhms_fit",
+            "means_fit",
+            "amplitudes_fit_err",
+            "fwhms_fit_err",
+            "means_fit_err",
+            "best_fit_rchi2",
+            "best_fit_aicc",
+            "N_components",
+            "pvalue",
+            "N_neg_res_peak",
+            "N_blended",
+        ]
+
+        for iteration in range(self.gdcluster_max_iterations):
+            say(f"\nstart gdcluster refit pass #{iteration + 1}...", logger=self.logger)
+
+            import gausspyplus.parallel_processing.parallel_processing
+
+            gausspyplus.parallel_processing.parallel_processing.init([self.indices_refit, [self]])
+            results_list = gausspyplus.parallel_processing.parallel_processing.func(
+                use_ncpus=self.use_ncpus, function="refit_gdcluster"
+            )
+
+            count_selected, count_refitted = 0, 0
+            changed_indices = []
+            n_rchi2_increased = n_rchi2_decreased = 0
+            n_aicc_increased = n_aicc_decreased = 0
+
+            for item in results_list:
+                if not isinstance(item, list):
+                    say(f"Error during gdcluster refit: {item}", logger=self.logger)
+                    continue
+                index, fit_results, _, is_refit_attempted = item
+                if is_refit_attempted:
+                    count_selected += 1
+                if fit_results is not None:
+                    old_rchi2 = self.decomposition["best_fit_rchi2"][index]
+                    old_aicc = self.decomposition["best_fit_aicc"][index]
+                    if old_rchi2 is not None:
+                        if fit_results["best_fit_rchi2"] > old_rchi2:
+                            n_rchi2_increased += 1
+                        elif fit_results["best_fit_rchi2"] < old_rchi2:
+                            n_rchi2_decreased += 1
+                    if old_aicc is not None:
+                        if fit_results["best_fit_aicc"] > old_aicc:
+                            n_aicc_increased += 1
+                        elif fit_results["best_fit_aicc"] < old_aicc:
+                            n_aicc_decreased += 1
+
+                    count_refitted += 1
+                    self.decomposition["refit_iteration"][index] += 1
+                    changed_indices.append(index)
+                    for key in keys:
+                        self.decomposition[key][index] = fit_results[key]
+
+            refit_percent = 0 if count_selected == 0 else count_refitted / count_selected
+            say(
+                textwrap.dedent(
+                    f"""
+                    Results of gdcluster refit pass #{iteration + 1}:
+                    Tried to refit {count_selected} spectra
+                    Successfully refitted {count_refitted} spectra ({refit_percent:.2%})
+
+                    Of the {count_refitted} successfully refit spectra (independent of the 'flag_rchi2' toggle):
+                    - reduced chi-square increased for {n_rchi2_increased}, decreased for {n_rchi2_decreased}
+                    - AICc increased for {n_aicc_increased}, decreased for {n_aicc_decreased}
+                    ***"""
+                ),
+                logger=self.logger,
+            )
+
+            if not changed_indices:
+                break
+
+        after_counts = self._flag_counts_for_reporting()
+        deltas = {key: after_counts[key] - before_counts[key] for key in before_counts}
+        say(
+            "\nFlags after phase 3 (GDCluster) refitting (change from before in parentheses):"
+            + self._format_flag_counts(after_counts, self.max_fwhm, deltas=deltas),
+            logger=self.logger,
+        )
+
+        self._save_final_results()
+
     def _define_mask(
         self,
         key: str,

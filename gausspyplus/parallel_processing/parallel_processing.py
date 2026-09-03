@@ -12,6 +12,7 @@ from gausspyplus.decomposition.gp import GaussianDecomposer
 from gausspyplus.preparation.noise_estimation import determine_noise
 from gausspyplus.preparation.prepare import GaussPyPrepare
 from gausspyplus.spatial_fitting.spatial_fitting import SpatialFitting
+from gausspyplus.spatial_fitting import gdcluster
 from gausspyplus.training.training_set import GaussPyTrainingSet
 from gausspyplus.processing.finalize import Finalize
 
@@ -88,6 +89,10 @@ def refit_spectrum_1(i):
 
 def refit_spectrum_2(i):
     return SpatialFitting.refit_spectrum_phase_2(self=mp_params[0], index=mp_data[i], i=i)
+
+
+def refit_spectrum_gdcluster(i):
+    return gdcluster.refit_spectrum_gdcluster(self=mp_params[0], index=mp_data[i], i=i)
 
 
 def calculate_noise_gpy(i):
@@ -167,6 +172,8 @@ def func(use_ncpus=None, function="noise"):
             results_list = parallel_process(array=mp_ilist, function=refit_spectrum_1, n_jobs=use_ncpus)
         elif function == "refit_phase_2":
             results_list = parallel_process(array=mp_ilist, function=refit_spectrum_2, n_jobs=use_ncpus)
+        elif function == "refit_gdcluster":
+            results_list = parallel_process(array=mp_ilist, function=refit_spectrum_gdcluster, n_jobs=use_ncpus)
         elif function == "make_table":
             results_list = parallel_process(array=mp_ilist, function=make_table, n_jobs=use_ncpus)
     except KeyboardInterrupt:

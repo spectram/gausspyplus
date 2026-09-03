@@ -201,8 +201,118 @@ def test_spatial_fitting_phase_2():
     assert sum(data_spatial_fitted_phase_2["refit_iteration"]) == 0
 
 
+def test_gdcluster_phase3_never_worsens_negative_residuals():
+    """Phase 3 (gdcluster) must never accept a refit that introduces/worsens negative residuals.
+
+    Runs phase 3 on the phase-2 output of the 5x5 GRS test field (mirroring how the notebook
+    chains it) and, for every spectrum phase 3 actually refit, asserts 'N_neg_res_peak' did not
+    increase relative to its phase-2 value. This also exercises the degenerate-bounds fix
+    ('Parameter 'pN' has min == max', observed on real data) end-to-end: the run must complete
+    without any "Error during gdcluster refit" spectra.
+    """
+    from gausspyplus.spatial_fitting.spatial_fitting import SpatialFitting
+
+    with open(
+        ROOT / "tests" / "test_grs/gpy_decomposed/grs-test_field_5x5_g+_fit_fin_sf-p2.pickle",
+        "rb",
+    ) as pfile:
+        before = pickle.load(pfile)
+
+    sp = SpatialFitting()
+    sp.path_to_pickle_file = ROOT / "tests" / "test_grs/gpy_prepared/grs-test_field_5x5.pickle"
+    sp.path_to_decomp_file = ROOT / "tests" / "test_grs/gpy_decomposed/grs-test_field_5x5_g+_fit_fin_sf-p2.pickle"
+    sp.fin_filename = "grs-test_field_5x5_g+_fit_fin_sf-p2_sf-p3_test"
+    sp.use_ncpus = 1
+    sp.log_output = False
+    sp.verbose = False
+    sp.refit_gdcluster = True
+    sp.gdcluster_neighbor_radius = 2.5
+    sp.spatial_fitting_gdcluster()
+
+    with open(
+        ROOT / "tests" / "test_grs/gpy_decomposed" / f"{sp.fin_filename}.pickle",
+        "rb",
+    ) as pfile:
+        after = pickle.load(pfile)
+
+    n_checked = 0
+    for idx, refit_iteration in enumerate(after["refit_iteration"]):
+        if not refit_iteration:
+            continue  # phase 3 left this spectrum unchanged
+        n_neg_res_before = before["N_neg_res_peak"][idx] or 0
+        n_neg_res_after = after["N_neg_res_peak"][idx] or 0
+        assert (
+            n_neg_res_after <= n_neg_res_before
+        ), f"phase 3 worsened negative residuals for spectrum {idx}: {n_neg_res_before} -> {n_neg_res_after}"
+        n_checked += 1
+
+    assert n_checked > 0  # sanity check that phase 3 actually refit something on this field
+
+
+def test_gdcluster_fin_filename_matches_phase_1_2_convention():
+    """Phase 3's auto-derived output filename must follow the same convention as phases 1/2:
+    '<decompose stem>_sf-pN', not '<decompose stem>_sf-p1_sf-p3' / '..._sf-p2_sf-p3'.
+
+    Phases 1/2 strip the prior phase's own suffix before appending theirs (see
+    'SpatialFitting._check_settings': phase 2's 'fin_filename' strips '_sf-p1' before adding
+    '_sf-p2'); phase 3 must do the same regardless of which phase's output it is chained from.
+    """
+    from gausspyplus.spatial_fitting.spatial_fitting import SpatialFitting
+
+    decomp_dir = ROOT / "tests" / "test_grs/gpy_decomposed"
+
+    for input_suffix in ["", "_sf-p1", "_sf-p2"]:
+        sp = SpatialFitting()
+        sp.path_to_pickle_file = ROOT / "tests" / "test_grs/gpy_prepared/grs-test_field_5x5.pickle"
+        sp.path_to_decomp_file = decomp_dir / f"grs-test_field_5x5_g+_fit_fin{input_suffix}.pickle"
+        sp.gdcluster_neighbor_radius = 2.5
+        sp._check_settings_gdcluster()
+        assert sp.fin_filename == "grs-test_field_5x5_g+_fit_fin_sf-p3", (
+            f"unexpected fin_filename {sp.fin_filename!r} for input suffix {input_suffix!r}"
+        )
+
+
+def test_gdcluster_flag_off_no_side_effects():
+    """Adding the opt-in phase 3 (gdcluster) code must not change phase 1's behaviour at all.
+
+    Reruns phase 1 with 'refit_gdcluster' left at its default (False, untouched) and asserts the
+    resulting decomposition dict is *equal* (not merely close) to a golden reference captured
+    from 'refactor' HEAD before the gdcluster code was added (same platform, same settings, same
+    'use_ncpus=1' -> deterministic). This is the literal "flag OFF -> zero behaviour change"
+    regression test for the phase 3 (gdcluster) feature.
+    """
+    from gausspyplus.spatial_fitting.spatial_fitting import SpatialFitting
+
+    sp = SpatialFitting()
+    sp.path_to_pickle_file = ROOT / "tests" / "test_grs/gpy_prepared/grs-test_field_5x5.pickle"
+    sp.path_to_decomp_file = ROOT / "tests" / "test_grs/gpy_decomposed/grs-test_field_5x5_g+_fit_fin.pickle"
+    sp.fin_filename = "grs-test_field_5x5_g+_fit_fin_sf-p1_gdcluster_flag_off_check"
+    sp.refit_blended = True
+    sp.refit_neg_res_peak = True
+    sp.refit_broad = True
+    sp.refit_residual = True
+    sp.refit_ncomps = True
+    sp.use_ncpus = 1
+    sp.log_output = True
+    sp.verbose = True
+    assert sp.refit_gdcluster is False  # the opt-in flag must default to off
+    sp.spatial_fitting()
+
+    with open(
+        ROOT / "tests" / "test_grs/gpy_decomposed" / f"{sp.fin_filename}.pickle",
+        "rb",
+    ) as pfile:
+        data_new = pickle.load(pfile)
+
+    with open(ROOT / "tests" / "golden" / "phase1_pre_gdcluster.pickle", "rb") as pfile:
+        data_golden = pickle.load(pfile)
+
+    assert data_new == data_golden
+
+
 if __name__ == "__main__":
     # test_prepare_cube()
     test_decompose_cube_gausspy()
     # test_spatial_fitting_phase_1()
     # test_spatial_fitting_phase_2()
+    # test_gdcluster_flag_off_no_side_effects()

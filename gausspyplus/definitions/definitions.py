@@ -609,3 +609,83 @@ class SettingsSpatialFitting:
             "simple": False,
         },
     )
+    refit_gdcluster: bool = field(
+        default=False,
+        metadata={
+            "description": "Run phase 3 of the spatially coherent refitting: consensus-driven, per-component "
+            "refinement against spatial neighbors (Liu & Du 2025, arXiv:2509.16572, Sect. 2.2). Opt-in and "
+            "independent of phases 1/2. [bool]",
+            "simple": True,
+        },
+    )
+    gdcluster_r_vdiff: float = field(
+        default=1.22,
+        metadata={
+            "description": "Hyper-parameter 'r_v_diff' (Rayleigh criterion) used in the line-center separation "
+            "measure for phase 3 (gdcluster) refitting. [float]",
+            "simple": False,
+        },
+    )
+    gdcluster_min_comp: int = field(
+        default=6,
+        metadata={
+            "description": "Minimum number of kinematically close spatial neighbors required for a component to "
+            "be kept (or added) during phase 3 (gdcluster) refitting; components with fewer matches are removed "
+            "as likely noise. [int]",
+            "simple": True,
+        },
+    )
+    gdcluster_neighbor_radius: Optional[float] = field(
+        default=None,
+        metadata={
+            "description": "Radius in pixels within which spatial neighbors are considered for phase 3 "
+            "(gdcluster) refitting. Liu & Du 2025 use twice the angular resolution (beam FWHM) converted to "
+            "pixels; this must be supplied by the user since this class has no beam/pixel-scale information. "
+            "[float]",
+            "simple": True,
+        },
+    )
+    gdcluster_mean_error_fallback: float = field(
+        default=1.0,
+        metadata={
+            "description": "Fallback line-center uncertainty (in channels) used for phase 3 (gdcluster) "
+            "refitting when a component's fitted mean uncertainty is missing or zero. [float]",
+            "simple": False,
+        },
+    )
+    gdcluster_max_iterations: int = field(
+        default=1,
+        metadata={
+            "description": "Number of passes of phase 3 (gdcluster) refitting. The Liu & Du 2025 method is a "
+            "single pass (default); higher values re-run the procedure on spectra whose neighbor set changed. "
+            "[int]",
+            "simple": False,
+        },
+    )
+    gdcluster_insert_weak_wide_prior: bool = field(
+        default=False,
+        metadata={
+            "description": "Insert a weak, wide Gaussian prior component before phase 3 (gdcluster) refitting so "
+            "that a broad, shallow component is not missed. Recommended for pervasive HI emission, not for CO. "
+            "[bool]",
+            "simple": True,
+        },
+    )
+    gdcluster_weak_wide_prior_amp_max_factor: float = field(
+        default=0.3,
+        metadata={
+            "description": "Factor multiplying 'snr * rms_noise' to get the upper amplitude bound of the weak, "
+            "wide Gaussian prior used in phase 3 (gdcluster) refitting (only used if "
+            "'gdcluster_insert_weak_wide_prior=True'). [float]",
+            "simple": False,
+        },
+    )
+    gdcluster_weak_wide_prior_fwhm_min_factor: float = field(
+        default=4.0,
+        metadata={
+            "description": "Factor multiplying 'min_fwhm' to get the lower FWHM bound of the weak, wide Gaussian "
+            "prior used in phase 3 (gdcluster) refitting (only used if 'gdcluster_insert_weak_wide_prior=True'). "
+            "[float]",
+            "simple": False,
+        },
+    )
