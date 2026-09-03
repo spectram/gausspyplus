@@ -70,6 +70,10 @@ class SpatialFitting(SettingsDefault, SettingsSpatialFitting, SettingsGDCluster,
 
         if config_file:
             get_values_from_config_file(self, config_file, config_key="spatial fitting")
+            #  Phase 3 (gdcluster) settings live in their own config section so 'gausspy+.ini' files stay
+            #  organized by pipeline stage; 'optional=True' keeps this backwards compatible with config files
+            #  generated before phase 3 existed, which have no '[phase 3]' section at all.
+            get_values_from_config_file(self, config_file, config_key="phase 3", optional=True)
 
     def _check_settings(self) -> None:
         """Check user settings and raise error messages or apply corrections."""

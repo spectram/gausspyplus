@@ -50,6 +50,7 @@ def make(
         "preparation": definitions.SettingsPreparation,
         "decomposition": definitions.SettingsDecomposition,
         "spatial fitting": definitions.SettingsSpatialFitting,
+        "phase 3": definitions.SettingsGDCluster,
     }.items():
 
         config_file += _add_settings_to_config_file(
@@ -68,7 +69,7 @@ def make(
         say(f"'{filename}' in '{output_directory}'", task="save")
 
 
-def get_values_from_config_file(self, config_file, config_key="DEFAULT"):
+def get_values_from_config_file(self, config_file, config_key="DEFAULT", optional: bool = False):
     """Read in values from a GaussPy+ configuration file.
 
     Parameters
@@ -77,10 +78,17 @@ def get_values_from_config_file(self, config_file, config_key="DEFAULT"):
         Filepath to configuration file of GaussPy+.
     config_key : str
         Section of GaussPy+ configuration file, whose parameters should be read in addition to 'DEFAULT'.
+    optional : bool
+        If `True`, silently do nothing when `config_key` is not a section in `config_file`, instead of raising.
+        Use for sections that may not exist in configuration files generated before that section was introduced
+        (e.g. 'phase 3', added after 'spatial fitting').
 
     """
     config = configparser.ConfigParser()
     config.read(config_file)
+
+    if optional and config_key not in config:
+        return
 
     for key, value in config[config_key].items():
         try:
