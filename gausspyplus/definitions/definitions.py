@@ -609,6 +609,10 @@ class SettingsSpatialFitting:
             "simple": False,
         },
     )
+
+
+@dataclass
+class SettingsGDCluster:
     refit_gdcluster: bool = field(
         default=False,
         metadata={

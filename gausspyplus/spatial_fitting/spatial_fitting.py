@@ -45,10 +45,10 @@ from gausspyplus.spatial_fitting.ndimage_functions import (
     broad_components,
 )
 from gausspyplus.utils.output import set_up_logger, say, make_pretty_header
-from gausspyplus.definitions.definitions import SettingsDefault, SettingsSpatialFitting
+from gausspyplus.definitions.definitions import SettingsDefault, SettingsSpatialFitting, SettingsGDCluster
 
 
-class SpatialFitting(SettingsDefault, SettingsSpatialFitting, BaseChecks):
+class SpatialFitting(SettingsDefault, SettingsSpatialFitting, SettingsGDCluster, BaseChecks):
     def __init__(
         self,
         path_to_pickle_file: Optional[Union[str, Path]] = None,
@@ -56,7 +56,8 @@ class SpatialFitting(SettingsDefault, SettingsSpatialFitting, BaseChecks):
         fin_filename: Optional[Union[str, Path]] = None,
         config_file: Union[str, Path] = "",
     ):
-        """Class implementing the two phases of spatially coherent refitting discussed in Riener+ 2019."""
+        """Class implementing the two phases of spatially coherent refitting discussed in Riener+ 2019, plus the
+        opt-in phase 3 (GDCluster-style consensus refitting, Liu & Du 2025, arXiv:2509.16572)."""
         self.path_to_pickle_file = path_to_pickle_file
         self.path_to_decomp_file = path_to_decomp_file
         self.dirpath_gpy = None
