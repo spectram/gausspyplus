@@ -32,6 +32,13 @@ def set_up_logger(parentDirname: Union[str, Path], filename: str, method: str = 
         level=logging.DEBUG,
     )
 
+    # basicConfig configures the root logger at DEBUG, and third-party loggers propagate to
+    # it at DEBUG too unless they have their own level set. matplotlib's font_manager logs a
+    # score for every installed font on every text render at DEBUG - this floods the log file
+    # with thousands of irrelevant lines (in practice, the large majority of it) - so keep
+    # matplotlib at WARNING here.
+    logging.getLogger("matplotlib").setLevel(logging.WARNING)
+
     return logging.getLogger(__name__)
 
 
